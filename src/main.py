@@ -73,6 +73,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "theme": "pr0_dark",
     "accent": "orange",
     "autoplay_video": True,
+    "autoplay_audio": True,
     "scroll_speed": "normal",
     "resolution": "auto",
     "width": 640,
@@ -167,9 +168,10 @@ class Pr0App:
             max_files=self.config.get("max_cache_files", 100),
         )
         preferred_player = self.config.get("video_player") or self.config.get("video_player_path")
-        self.video = VideoPlayer(preferred_player=preferred_player)
-        self.inline_player = InlineVideoPlayer()
         self.button_layout = str(self.config.get("button_layout", "auto"))
+        self.video = VideoPlayer(preferred_player=preferred_player, button_layout=self.button_layout)
+        self.autoplay_audio = bool(self.config.get("autoplay_audio", True))
+        self.inline_player = InlineVideoPlayer(video_player=self.video, enable_audio=self.autoplay_audio)
         self.input_mgr = InputManager(axis_threshold=0.45, layout=self.button_layout)
 
         # Feed & Content State
@@ -834,6 +836,14 @@ class Pr0App:
                 "options": [True, False],
             },
             {
+                "id": "autoplay_audio",
+                "label": "Sound in Vorschau",
+                "type": "choice",
+                "value": self.autoplay_audio,
+                "display_value": "Aktiviert" if self.autoplay_audio else "Deaktiviert",
+                "options": [True, False],
+            },
+            {
                 "id": "video_player_info",
                 "label": "Videoplayer",
                 "type": "action",
@@ -905,6 +915,7 @@ class Pr0App:
         self.config["theme"] = self.theme
         self.config["accent"] = self.accent
         self.config["autoplay_video"] = self.autoplay_video
+        self.config["autoplay_audio"] = self.autoplay_audio
         self.config["promoted"] = self.promoted
         self.config["flags"] = self.flags
         self.config["scroll_speed"] = self.scroll_speed
@@ -951,6 +962,9 @@ class Pr0App:
                     self.ui.set_theme(self.theme, self.accent)
                 elif item_id == "autoplay_video":
                     self.autoplay_video = bool(new_val)
+                elif item_id == "autoplay_audio":
+                    self.autoplay_audio = bool(new_val)
+                    self.inline_player.enable_audio = self.autoplay_audio
                 elif item_id == "promoted":
                     self.promoted = int(new_val)
                 elif item_id == "flags":
@@ -961,6 +975,7 @@ class Pr0App:
                 elif item_id == "button_layout":
                     self.button_layout = str(new_val)
                     self.input_mgr.set_layout(self.button_layout)
+                    self.video.button_layout = self.button_layout
                     disp = "Standard (A=Öffnen, B=Zurück)" if self.input_mgr.button_layout == "standard" else "Invertiert (B=Öffnen, A=Zurück)"
                     self.set_toast(f"Knöpfe: {disp}", COLOR_ORANGE, duration=1.5)
             return
@@ -1015,6 +1030,9 @@ class Pr0App:
                     self.ui.set_theme(self.theme, self.accent)
                 elif item_id == "autoplay_video":
                     self.autoplay_video = bool(new_val)
+                elif item_id == "autoplay_audio":
+                    self.autoplay_audio = bool(new_val)
+                    self.inline_player.enable_audio = self.autoplay_audio
                 elif item_id == "promoted":
                     self.promoted = int(new_val)
                 elif item_id == "flags":
@@ -1025,6 +1043,7 @@ class Pr0App:
                 elif item_id == "button_layout":
                     self.button_layout = str(new_val)
                     self.input_mgr.set_layout(self.button_layout)
+                    self.video.button_layout = self.button_layout
                     disp = "Standard (A=Öffnen, B=Zurück)" if self.input_mgr.button_layout == "standard" else "Invertiert (B=Öffnen, A=Zurück)"
                     self.set_toast(f"Knöpfe: {disp}", COLOR_ORANGE, duration=1.5)
                 return
@@ -1162,7 +1181,7 @@ class Pr0App:
                 ("▲/▼", "Scrollen"),
             ]
             if is_vid:
-                hints.append(("A", "Video mit Sound"))
+                hints.append(("A", "Vollbild"))
             hints.extend([
                 ("R1/+", "+1"),
                 ("L1/-", "-1"),

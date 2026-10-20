@@ -2,6 +2,7 @@
   "theme": "pr0_dark",
   "accent": "orange",
   "autoplay_video": true,
+  "autoplay_audio": true,
   "scroll_speed": "normal",
   "resolution": "auto",
   "width": 640,

@@ -765,10 +765,10 @@ class UIRenderer:
 
                 # Video status badge (Subtle top-right corner indicator, NO flashing center box)
                 if inline_frame is not None:
-                    badge_txt = "A: Video mit Ton"
+                    badge_txt = "A: Vollbild"
                     badge_color = self.color_text
                 elif video_player_available:
-                    badge_txt = "A: Video mit Ton"
+                    badge_txt = "A: Vollbild"
                     badge_color = self.color_text
                 else:
                     badge_txt = "Kein Player (mpv fehlt)"

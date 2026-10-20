@@ -20,17 +20,39 @@ import pygame
 
 logger = logging.getLogger("pr0.video")
 
-# Keybindings for mpv input configuration (mapped b/B to quit to avoid "deband: yes/no")
+# Keybindings for mpv input configuration
 MPV_INPUT_CONF_CONTENT = """# pr0-retroconsole mpv controls
+# Keyboard & gptokeyb keys
 b quit
 B quit
+esc quit
 ESC quit
-BACKSPACE quit
 q quit
+Q quit
+backspace quit
+BACKSPACE quit
+
+# Playback controls
 SPACE cycle pause
 ENTER cycle pause
+a cycle pause
+A cycle pause
+
+# Gamepad buttons (mpv SDL2 / Gamepad API)
+GAMEPAD_ACTION_RIGHT quit
+GAMEPAD_ACTION_DOWN cycle pause
+GAMEPAD_BACK quit
+GAMEPAD_START cycle pause
+
+# Linux evdev button names
 BTN_EAST quit
 BTN_SOUTH cycle pause
+BTN_B quit
+BTN_A cycle pause
+BTN_SELECT quit
+BTN_START cycle pause
+JOY_BTN1 quit
+JOY_B quit
 """
 
 
@@ -65,21 +87,35 @@ def get_handheld_env(binary_path: str | None = None) -> dict[str, str]:
 
 
 class InlineVideoPlayer:
-    """Decodes video frames in a background thread for direct embedded playback in Pygame."""
+    """Decodes video frames in a background thread for direct embedded playback in Pygame,
+    with an accompanying background audio stream for sound in post-view.
+    """
 
-    def __init__(self, preferred_ffmpeg: str | None = None):
+    def __init__(
+        self,
+        preferred_ffmpeg: str | None = None,
+        video_player: VideoPlayer | None = None,
+        enable_audio: bool = True,
+    ):
         self.preferred_ffmpeg = preferred_ffmpeg
+        self.video_player = video_player
+        self.enable_audio = enable_audio
         self.system = platform.system()
         self.ffmpeg_bin = self._find_ffmpeg()
 
         self._running = False
         self._thread: threading.Thread | None = None
         self._proc: subprocess.Popen | None = None
+        self._audio_proc: subprocess.Popen | None = None
         self._current_frame: pygame.Surface | None = None
         self._lock = threading.Lock()
         self._active_url: str | None = None
 
-        logger.info("InlineVideoPlayer init: ffmpeg=%s", self.ffmpeg_bin)
+        logger.info(
+            "InlineVideoPlayer init: ffmpeg=%s, audio_enabled=%s",
+            self.ffmpeg_bin,
+            self.enable_audio,
+        )
 
     def _find_ffmpeg(self) -> str | None:
         """Locate ffmpeg executable."""
@@ -143,8 +179,77 @@ class InlineVideoPlayer:
     def is_available(self) -> bool:
         return self.ffmpeg_bin is not None
 
+    def _start_audio(self, url: str) -> None:
+        """Launch background audio playback companion process."""
+        if not self.enable_audio:
+            return
+
+        player = self.video_player
+        if not player or not player.has_player() or not player.player_path:
+            logger.debug("No video player available for inline audio companion")
+            return
+
+        cmd: list[str] = []
+        if player.player_type == "mpv":
+            cmd = [
+                player.player_path,
+                "--no-video",
+                "--loop-file=inf",
+                "--terminal=no",
+                "--really-quiet",
+                "--volume=100",
+            ]
+            if player.is_handheld:
+                cmd.extend(["--ao=alsa,oss,sdl"])
+            cmd.append(url)
+        elif player.player_type == "ffplay":
+            cmd = [
+                player.player_path,
+                "-nodisp",
+                "-loop", "0",
+                "-loglevel", "quiet",
+                url,
+            ]
+        elif player.player_type == "vlc":
+            cmd = [
+                player.player_path,
+                "--intf", "dummy",
+                "--no-video",
+                "--loop",
+                url,
+            ]
+        else:
+            return
+
+        env = get_handheld_env(player.player_path)
+        try:
+            logger.info("Starting inline audio companion: %s", " ".join(cmd))
+            self._audio_proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                env=env,
+            )
+        except Exception as e:
+            logger.warning("Failed to start inline audio companion: %s", e)
+            self._audio_proc = None
+
+    def _stop_audio(self) -> None:
+        """Terminate background audio playback companion."""
+        if self._audio_proc:
+            try:
+                self._audio_proc.terminate()
+                self._audio_proc.wait(timeout=0.15)
+            except Exception:
+                try:
+                    self._audio_proc.kill()
+                except Exception:
+                    pass
+            self._audio_proc = None
+
     def play_inline(self, url: str, width: int = 480, height: int = 270) -> bool:
-        """Start streaming frames from video URL in a background thread."""
+        """Start streaming frames from video URL in a background thread with audio companion."""
         if not self.is_available or not url:
             return False
 
@@ -161,6 +266,11 @@ class InlineVideoPlayer:
 
         self._active_url = url
         self._running = True
+
+        # Start audio companion
+        if self.enable_audio:
+            self._start_audio(url)
+
         self._thread = threading.Thread(
             target=self._stream_worker,
             args=(url, w, h),
@@ -236,9 +346,10 @@ class InlineVideoPlayer:
             return self._current_frame
 
     def stop(self) -> None:
-        """Terminate the active stream."""
+        """Terminate the active stream and audio companion."""
         self._running = False
         self._active_url = None
+        self._stop_audio()
         if self._proc:
             try:
                 self._proc.kill()
@@ -255,8 +366,9 @@ class InlineVideoPlayer:
 class VideoPlayer:
     """Handles external video playback using mpv, ffplay, or vlc with graceful fallbacks."""
 
-    def __init__(self, preferred_player: str | None = None):
+    def __init__(self, preferred_player: str | None = None, button_layout: str = "standard"):
         self.preferred_player = preferred_player
+        self.button_layout = button_layout
         self.system = platform.system()
         self.machine = platform.machine().lower()
 
@@ -458,7 +570,6 @@ class VideoPlayer:
                 cmd = [
                     self.player_path,
                     "--fs",
-                    "--terminal=no",
                     "--hwdec=no",
                     "--ao=alsa,oss,sdl",
                     "--volume=100",
@@ -468,7 +579,9 @@ class VideoPlayer:
                     "--demuxer-max-bytes=30M",
                     "--demuxer-readahead-secs=8",
                     "--loop-file=inf",
-                    "--msg-level=all=warn",
+                    "--input-terminal=yes",
+                    "--input-gamepad=yes",
+                    "--really-quiet",
                     conf_arg,
                     media_url,
                 ]
@@ -479,6 +592,9 @@ class VideoPlayer:
                     f"--geometry={width}x{height}",
                     "--loop-file=inf",
                     "--force-window=immediate",
+                    "--input-terminal=yes",
+                    "--input-gamepad=yes",
+                    "--really-quiet",
                     conf_arg,
                     media_url,
                 ]
@@ -518,18 +634,45 @@ class VideoPlayer:
         env = get_handheld_env(self.player_path)
         logger.info("Executing video player: %s", " ".join(cmd))
 
+        # Determine back button index based on active layout
+        back_btn = 0 if self.button_layout == "inverted" else 1
+
         try:
-            # Run player and block until user exits video
-            res = subprocess.run(cmd, env=env, check=False)
-            logger.info("Video player exited with code %s", res.returncode)
+            # Run player and monitor for exit
+            p = subprocess.Popen(cmd, env=env)
+            while p.poll() is None:
+                # Pump pygame events to detect user exit requests (B / ESC)
+                for ev in pygame.event.get():
+                    if ev.type == pygame.QUIT:
+                        p.terminate()
+                        break
+                    elif ev.type == pygame.KEYDOWN:
+                        if ev.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_q, pygame.K_BACKSPACE):
+                            logger.info("Video player exit requested via key %s", ev.key)
+                            p.terminate()
+                            break
+                    elif ev.type == pygame.JOYBUTTONDOWN:
+                        # B button (back_btn) or Select/Back button (6, 8, 10)
+                        if ev.button in (back_btn, 6, 8, 10):
+                            logger.info("Video player exit requested via gamepad back button %s", ev.button)
+                            p.terminate()
+                            break
+                time.sleep(0.04)
+
+            try:
+                p.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                p.kill()
+
+            logger.info("Video player exited with code %s", p.returncode)
         except Exception as e:
             logger.error("Failed to execute video player: %s", e)
             return False
         finally:
             # CRITICAL SDL2 TRANSITION:
-            # Ensure keyboard/gamepad events (like B or ESC pressed to quit mpv)
-            # do not bleed into Pygame's event queue and accidentally close the post view.
-            time.sleep(0.1)
+            # Allow time for physical button release and purge queue so events
+            # do not bleed into Pygame's post view
+            time.sleep(0.2)
             pygame.event.clear()
 
         return True
