@@ -263,10 +263,12 @@ class InputManager:
                 elif btn == BTN_Y:  # 3
                     act, lbl = ACTION_TOGGLE_MODE, "Y (Beliebt / Neu)"
 
-            if btn in (BTN_R1, 5, 10):
+            if btn in (BTN_R1, 5):
                 act, lbl = ACTION_UPVOTE, "R1"
-            elif btn in (BTN_L1, 4, 9):
+            elif btn in (BTN_L1, 4):
                 act, lbl = ACTION_DOWNVOTE, "L1"
+            elif btn in (9, 10):
+                act, lbl = ACTION_TOGGLE_MODE, f"L2/R2 (Button {btn})"
             elif btn == BTN_START:
                 act, lbl = ACTION_SELECT, "START"
             elif btn == BTN_BACK:
