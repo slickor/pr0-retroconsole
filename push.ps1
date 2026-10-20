@@ -24,23 +24,23 @@ Write-Host "         pr0-retroconsole - GitHub Push Utility           " -Foregro
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Version aus src/version.py auslesen
-$Version = "0.3.2"
+$Version = "0.3.3"
 try {
     $verOut = python -c "import src.version; print(src.version.VERSION)" 2>$null
     if ($verOut) {
         $Version = "$verOut".Trim()
     }
 } catch {
-    $Version = "0.3.2"
+    $Version = "0.3.3"
 }
 
 Write-Host "Projektverzeichnis: $ScriptDir" -ForegroundColor Gray
 Write-Host "Aktuelle Version:   v$Version" -ForegroundColor Yellow
 
-# 2. Optional: Release-ZIP neu bauen vor dem Push
+# 2. Optional: Release-ZIP lokal neu bauen
 if ($Build) {
-    Write-Host "`n[1/4] Baue Release-Paket mit build.ps1..." -ForegroundColor Cyan
-    powershell -ExecutionPolicy Bypass -File (Join-Path $ScriptDir "build.ps1")
+    Write-Host "`n[1/4] Baue Release-Paket mit build_release.py..." -ForegroundColor Cyan
+    python (Join-Path $ScriptDir "build_release.py")
 }
 
 # 3. Git-Repository & Remote ueberpruefen
@@ -110,17 +110,24 @@ if (-not $status) {
     git push -u origin main
 }
 
-# 8. Optional: Git-Tag erstellen und pushen
-if ($Tag) {
-    $tagName = "v$Version"
-    Write-Host "`nErstelle und pushe Release-Tag '$tagName'..." -ForegroundColor Cyan
+# 8. Release-Tag fuer automatische GitHub Actions Veroeffentlichung
+$tagName = "v$Version"
+$remoteTags = git ls-remote --tags origin $tagName 2>$null
+$tagExists = [bool]($remoteTags -match $tagName)
+
+if ($Tag -or (-not $tagExists)) {
+    Write-Host "`n[Auto-Release] Erstelle und pushe Release-Tag '$tagName'..." -ForegroundColor Cyan
     try {
         git tag -fa $tagName -m "Release $tagName"
         git push origin $tagName --force
         Write-Host "Tag '$tagName' erfolgreich gepusht!" -ForegroundColor Green
+        Write-Host "-> GitHub Action erstellt jetzt automatisch das Release mit ZIP-Anhang:" -ForegroundColor Yellow
+        Write-Host "   https://github.com/slickor/pr0-retroconsole/actions" -ForegroundColor Cyan
     } catch {
         Write-Host "Hinweis beim Tag-Push: $_" -ForegroundColor DarkYellow
     }
+} else {
+    Write-Host "`nRelease-Tag '$tagName' existiert bereits auf GitHub." -ForegroundColor Gray
 }
 
 # Abschlussbericht
@@ -129,4 +136,5 @@ Write-Host "   ERFOLG: Repository ist synchronisiert mit GitHub!      " -Foregro
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host "GitHub URL:   https://github.com/slickor/pr0-retroconsole" -ForegroundColor White
 Write-Host "Releases:     https://github.com/slickor/pr0-retroconsole/releases" -ForegroundColor DarkGray
+Write-Host "Actions:      https://github.com/slickor/pr0-retroconsole/actions" -ForegroundColor DarkGray
 Write-Host "==========================================================" -ForegroundColor Cyan
