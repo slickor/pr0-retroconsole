@@ -1,0 +1,17 @@
+{
+  "theme": "pr0_dark",
+  "accent": "orange",
+  "autoplay_video": true,
+  "scroll_speed": "normal",
+  "resolution": "auto",
+  "width": 640,
+  "height": 480,
+  "fullscreen": true,
+  "promoted": 1,
+  "flags": 1,
+  "me_cookie": "",
+  "cache_dir": "/tmp/pr0cache",
+  "max_cache_files": 100,
+  "button_layout": "auto",
+  "fps": 30
+}

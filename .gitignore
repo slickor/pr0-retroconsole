@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local config & logs
+config.json
+*.log
+log.txt
+
+# Handheld local libs & install marker
+libs/*
+!libs/qrcodegen.py
+.installed
+bin/
+*.exe
+
+# Caches
+cache/
+/tmp/pr0cache
+.cache/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Build & Release Archives
+dist/
+*.zip
+/pr0-presentation-*.png
+
