@@ -174,6 +174,8 @@ class InputManager:
             return ACTION_UPVOTE, "R1 (Plus / Upvote)"
         elif key in (pygame.K_MINUS, pygame.K_KP_MINUS, pygame.K_e):
             return ACTION_DOWNVOTE, "L1 (Minus / Downvote)"
+        elif key == pygame.K_t:
+            return ACTION_TOGGLE_MODE, "L2/R2 (Beliebt / Neu)"
 
         # Face Buttons - Dependent on Button Layout
         # On PortMaster / gptokeyb with pr0.gptk:
@@ -271,8 +273,8 @@ class InputManager:
                 act, lbl = ACTION_BACK, "SELECT"
 
             # When gptokeyb is active, face buttons/d-pad/start/back are handled by gptokeyb key strokes.
-            # Only shoulder buttons (L1/R1) are allowed as fallback here in case gptokeyb dropped them.
-            if self.is_gptokeyb_active and act not in (ACTION_UPVOTE, ACTION_DOWNVOTE):
+            # Only shoulder buttons (L1/R1, L2/R2) are allowed as fallback here in case gptokeyb dropped them.
+            if self.is_gptokeyb_active and act not in (ACTION_UPVOTE, ACTION_DOWNVOTE, ACTION_TOGGLE_MODE):
                 return actions
 
             if act:

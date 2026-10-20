@@ -234,6 +234,12 @@ class Pr0App:
 
         # Pygame & Display Setup
         pygame.init()
+        # Release audio device in Pygame so external players (mpv) have exclusive ALSA access on Linux handhelds
+        if pygame.mixer.get_init():
+            try:
+                pygame.mixer.quit()
+            except Exception:
+                pass
         self.width, self.height, self.fullscreen = self._setup_resolution()
         if os.name == "nt":
             flags = pygame.FULLSCREEN if self.fullscreen else pygame.RESIZABLE
@@ -1097,8 +1103,8 @@ class Pr0App:
                 hints=[
                     ("D-Pad", "Nav"),
                     ("A", "Öffnen"),
-                    ("L1/R1", "SFW/NSFW"),
-                    ("Y", "Neu/Beliebt"),
+                    ("L1/R1", "Filter"),
+                    ("L2/R2", "Beliebt/Neu"),
                     ("X", "Setup"),
                 ],
                 toast_message=toast_active,
@@ -1156,7 +1162,7 @@ class Pr0App:
                 ("▲/▼", "Scrollen"),
             ]
             if is_vid:
-                hints.append(("A", "Video"))
+                hints.append(("A", "Video mit Sound"))
             hints.extend([
                 ("R1/+", "+1"),
                 ("L1/-", "-1"),

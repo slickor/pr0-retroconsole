@@ -34,12 +34,13 @@ Basierend auf den bewährten Architekturmustern von [ha-retroconsole](https://gi
 | **D-Pad Links / Rechts** | `Pfeiltasten ◄ / ►` | Navigation im Thumbnail-Raster | Vorheriger / Nächster Post |
 | **D-Pad Oben / Unten** | `Pfeiltasten ▲ / ▼` | Vertikale Zeilennavigation | Durch Bild/Video, Tags & Kommentare scrollen |
 | **Rechter Stick** | `W` / `S` (oder `PgUp`/`PgDn`) | Schnelles vertikales Scrollen | Schnelles Scrollen im Post & Kommentarbaum |
-| **A** | `Enter` / `Leertaste` | Post öffnen | Video im Vollbild abspielen (mpv) |
+| **A** | `Enter` / `Leertaste` | Post öffnen | Video mit Sound im Vollbild abspielen (mpv) |
 | **B** | `Esc` / `Backspace` / `Q` | App beenden (2x drücken) | Zurück zum Grid |
 | **X** | `I` / `X` | Einstellungen & Farbschema öffnen | Einstellungen öffnen |
 | **Y** | `Tab` / `Y` | Wechsel zwischen *Beliebt* & *Neu* | - |
-| **R1** | `+` / `=` | Content-Filter wechseln (SFW, NSFW, etc.) | Upvote (+1 Blussi) vergeben |
-| **L1** | `-` | Content-Filter wechseln | Downvote (-1) vergeben |
+| **L2 / R2** | `T` | Wechsel zwischen *Beliebt* & *Neu* | - |
+| **R1** | `+` / `=` / `R` | Content-Filter wechseln (SFW, NSFW, etc.) | Upvote (+1 Blussi) vergeben |
+| **L1** | `-` / `E` | Content-Filter wechseln | Downvote (-1) vergeben |
 
 ---
 

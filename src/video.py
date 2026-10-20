@@ -443,6 +443,13 @@ class VideoPlayer:
             conf_arg = f"--input-conf={self.input_conf_path}"
 
             if self.is_handheld:
+                # Ensure ALSA sound hardware device is completely free for mpv
+                try:
+                    if pygame.mixer.get_init():
+                        pygame.mixer.quit()
+                except Exception:
+                    pass
+
                 # Fullscreen software-decoded playback for TrimUI Smart Pro, R36S, ArkOS
                 # NOTE: --hwdec=no is required on TrimUI / Allwinner A133.
                 # Allwinner's V4L2 cedrus decoder has a hardware bug where B-frames are output
@@ -453,12 +460,13 @@ class VideoPlayer:
                     "--fs",
                     "--terminal=no",
                     "--hwdec=no",
+                    "--ao=alsa,oss,sdl",
+                    "--volume=100",
                     "--video-sync=audio",
                     "--framedrop=vo",
                     "--cache=yes",
                     "--demuxer-max-bytes=30M",
                     "--demuxer-readahead-secs=8",
-                    "--audio-buffer=1",
                     "--loop-file=inf",
                     "--msg-level=all=warn",
                     conf_arg,
