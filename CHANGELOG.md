@@ -10,6 +10,8 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 ## [0.3.7] - 2026-10-21
 
 ### Hinzugefügt
+- **Harmonisches Brand-Logo `[pr0]-retroconsole`:** Das doppelte Logo (`[pr0] pr0-retroconsole`) wurde durch einen einheitlichen Markenschriftzug ersetzt. Der Teil `pr0` ist in eine passgenaue orangefarbene Badge mit zentriertem Text und großzügigem Innenabstand gefasst, gefolgt vom nahtlosen Schriftzug `-retroconsole`.
+- **Knulli OS Unterstützung & Badge:** Neues stylisches Badge für *Knulli* (Batocera-basierte Handheld-Firmware) in Banner und Infografik-Poster ergänzt. Knulli-Pfade (`/userdata/roms/ports/`) in `pr0-retroconsole.sh` und `README.md` integriert.
 - **Dokumentations-Grafiken in `docs/images/`:** Präsentationsbanner und Infografik-Poster werden nun auf der GitHub-Landingpage und in der `README.md` gerendert, ohne das Release-ZIP aufzublähen.
 - **`CHANGELOG.md`:** Vollständiges Changelog aller Versionen im Keep-a-Changelog Format.
 - **Erweiterte Dokumentation:** `README.md` überarbeitet mit Shields.io Badges, ausklappbarem Feature-Poster und detaillierter Tastenmatrix.

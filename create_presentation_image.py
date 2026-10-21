@@ -135,30 +135,43 @@ def create_poster():
     # -------------------------------------------------------------
     curr_y = 50
 
-    # Badges
+    # Badges (ArkOS, CrossMix-OS, Knulli, Release, Open Source)
     p1_w, p1_h = draw_pill(draw, 70, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
     p2_w, p2_h = draw_pill(draw, 70 + p1_w + 12, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
-    p3_w, p3_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12, curr_y, f"RELEASE v{VERSION}", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
+    p3_w, p3_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12, curr_y, "KNULLI", font_badge, (38, 22, 52, 255), (200, 145, 255, 255), (95, 45, 135, 255))
+    p4_w, p4_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12 + p3_w + 12, curr_y, f"RELEASE v{VERSION}", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
     draw_pill(draw, None, curr_y, "100% OPEN SOURCE", font_badge, (30, 30, 35, 255), COLOR_TEXT_GRAY, (60, 60, 70, 255), right_x=W - 70)
 
     curr_y += 55
 
-    # Main Logo & Title
-    # Draw pr0 square logo
-    logo_size = 64
-    draw.rounded_rectangle((70, curr_y, 70 + logo_size, curr_y + logo_size), radius=12, fill=COLOR_ORANGE)
-    font_logo = get_font("bold", 38)
-    draw.text((70 + 8, curr_y + 8), "pr0", font=font_logo, fill=(255, 255, 255, 255))
+    # Main Brand Title: [ pr0 ]-retroconsole
+    b_pr0 = font_title.getbbox("pr0")
+    w_pr0 = b_pr0[2] - b_pr0[0]
+    h_pr0 = b_pr0[3] - b_pr0[1]
 
-    title_text = "pr0-retroconsole"
-    draw.text((70 + logo_size + 18, curr_y - 2), title_text, font=font_title, fill=COLOR_TEXT_WHITE)
+    pad_x = 18
+    pad_y = 8
+    box_w = w_pr0 + pad_x * 2
+    box_h = h_pr0 + pad_y * 2
+
+    # Draw rounded orange box for "pr0"
+    draw.rounded_rectangle((70, curr_y, 70 + box_w, curr_y + box_h), radius=12, fill=COLOR_ORANGE)
+
+    # Draw "pr0" centered inside box with generous margin
+    text_x = 70 + pad_x - b_pr0[0]
+    text_y = curr_y + pad_y - b_pr0[1]
+    draw.text((text_x, text_y), "pr0", font=font_title, fill=(255, 255, 255, 255))
+
+    # Draw "-retroconsole" immediately after box
+    rest_x = 70 + box_w + 8
+    draw.text((rest_x, text_y), "-retroconsole", font=font_title, fill=COLOR_TEXT_WHITE)
 
     # Subtitle
-    curr_y += 72
-    sub_text = "Die native pr0gramm-App für Handheld-Konsolen • R36S, TrimUI Smart Pro, ArkOS & Co."
+    curr_y += box_h + 16
+    sub_text = "Die native pr0gramm-App für Handheld-Konsolen • R36S, TrimUI Smart Pro, ArkOS, CrossMix, Knulli & Co."
     draw.text((70, curr_y), sub_text, font=font_subtitle, fill=COLOR_TEXT_GRAY)
 
-    curr_y += 55
+    curr_y += 48
 
     # -------------------------------------------------------------
     # 3D RENDER SECTION (Hero Graphic)
@@ -272,7 +285,7 @@ def create_poster():
             "tag": "EASY SETUP",
             "points": [
                 ("ZIP-Archiv direkt auf die SD-Karte in /roms/ports/ entpacken", True),
-                ("Kompatibel mit R36S, TrimUI, Anbernic, Powkiddy uvm.", True),
+                ("Kompatibel mit R36S, TrimUI, ArkOS, CrossMix, Knulli uvm.", True),
                 ("Alle benötigten Bibliotheken (pure-python requests) an Bord", False),
                 ("Konfiguration (config.json) wird bei Updates nicht überschrieben", False),
             ]
@@ -358,21 +371,37 @@ def create_banner():
     # Left Column: Information (Width 850px)
     curr_y = 70
     p1_w, p1_h = draw_pill(draw, 75, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
-    p2_w, p2_h = draw_pill(draw, 75 + p1_w + 14, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
-    draw_pill(draw, 75 + p1_w + 14 + p2_w + 14, curr_y, f"v{VERSION} RELEASE", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
+    p2_w, p2_h = draw_pill(draw, 75 + p1_w + 10, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
+    p3_w, p3_h = draw_pill(draw, 75 + p1_w + 10 + p2_w + 10, curr_y, "KNULLI", font_badge, (38, 22, 52, 255), (200, 145, 255, 255), (95, 45, 135, 255))
+    draw_pill(draw, 75 + p1_w + 10 + p2_w + 10 + p3_w + 10, curr_y, f"v{VERSION} RELEASE", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
 
-    curr_y += 65
-    # Logo + Title
-    logo_size = 68
-    draw.rounded_rectangle((75, curr_y, 75 + logo_size, curr_y + logo_size), radius=14, fill=COLOR_ORANGE)
-    font_logo = get_font("bold", 40)
-    draw.text((75 + 10, curr_y + 10), "pr0", font=font_logo, fill=(255, 255, 255, 255))
-    draw.text((75 + logo_size + 20, curr_y + 2), "pr0-retroconsole", font=font_title, fill=COLOR_TEXT_WHITE)
+    curr_y += 62
+    # Unified Brand Title: [ pr0 ]-retroconsole
+    b_pr0 = font_title.getbbox("pr0")
+    w_pr0 = b_pr0[2] - b_pr0[0]
+    h_pr0 = b_pr0[3] - b_pr0[1]
 
-    curr_y += 82
+    pad_x = 20
+    pad_y = 8
+    box_w = w_pr0 + pad_x * 2
+    box_h = h_pr0 + pad_y * 2
+
+    # Draw rounded orange box for "pr0"
+    draw.rounded_rectangle((75, curr_y, 75 + box_w, curr_y + box_h), radius=14, fill=COLOR_ORANGE)
+
+    # Draw "pr0" centered inside box with generous margin
+    text_x = 75 + pad_x - b_pr0[0]
+    text_y = curr_y + pad_y - b_pr0[1]
+    draw.text((text_x, text_y), "pr0", font=font_title, fill=(255, 255, 255, 255))
+
+    # Draw "-retroconsole" immediately after box
+    rest_x = 75 + box_w + 8
+    draw.text((rest_x, text_y), "-retroconsole", font=font_title, fill=COLOR_TEXT_WHITE)
+
+    curr_y += box_h + 16
     draw.text((75, curr_y), "Das pr0gramm für deinen Retro-Handheld!", font=font_sub, fill=COLOR_TEXT_GRAY)
 
-    curr_y += 55
+    curr_y += 48
 
     # Features List on Left
     features = [
@@ -392,7 +421,7 @@ def create_banner():
 
     # Bottom Footer info
     footer_y = H - 85
-    draw.text((75, footer_y), "Open Source auf GitHub • Pure Python & SDL2 • Für R36S, TrimUI Smart Pro, Anbernic & Co.", 
+    draw.text((75, footer_y), "Open Source auf GitHub • Pure Python & SDL2 • Für R36S, TrimUI Smart Pro, ArkOS, CrossMix, Knulli & Co.", 
               font=font_footer, fill=COLOR_TEXT_MUTED)
 
     # Right Column: 3D Render (Width 940px, Height 530px or larger)

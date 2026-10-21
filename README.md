@@ -6,13 +6,13 @@
 
 <p align="center">
   <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
-  <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix--OS%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.7-orange?style=for-the-badge" alt="Changelog"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
 </p>
 
-> **pr0-retroconsole** ist ein nativer, leichtgewichtiger Client für das Imageboard [pr0gramm](https://pr0gramm.com), maßgeschneidert für Linux-basierte Retro-Handheld-Konsolen wie den **R36S** (640x480, ArkOS), den **TrimUI Smart Pro** (1280x720, CrossMix-OS), Anbernic-, Powkiddy- und PortMaster-Systeme.
+> **pr0-retroconsole** ist ein nativer, leichtgewichtiger Client für das Imageboard [pr0gramm](https://pr0gramm.com), maßgeschneidert für Linux-basierte Retro-Handheld-Konsolen wie den **R36S** (640x480, ArkOS), den **TrimUI Smart Pro** (1280x720, CrossMix-OS), Anbernic-, Powkiddy-, Knulli- und PortMaster-Systeme.
 
 ---
 
@@ -77,6 +77,7 @@
 2. Entpacke den Inhalt direkt in das `ports`-Verzeichnis deiner SD-Karte:
    - **ArkOS / R36S:** `/roms/ports/` (bzw. auf dem `EASYROMS`-Laufwerk in `ports/`)
    - **CrossMix-OS / TrimUI Smart Pro:** `/mnt/SDCARD/Emus/PORTS/`
+   - **Knulli / Batocera:** `/userdata/roms/ports/` bzw. `/roms/ports/`
    - **PortMaster:** `/roms/ports/` bzw. `tools/PortMaster/`
 3. Stelle sicher, dass die Dateistruktur so aussieht:
    ```text

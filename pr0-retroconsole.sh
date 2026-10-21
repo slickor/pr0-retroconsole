@@ -36,6 +36,8 @@ elif [ -d "/roms/ports/pr0-retroconsole" ]; then
   GAMEDIR="/roms/ports/pr0-retroconsole"
 elif [ -d "/ports/pr0-retroconsole" ]; then
   GAMEDIR="/ports/pr0-retroconsole"
+elif [ -d "/userdata/roms/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/userdata/roms/ports/pr0-retroconsole"
 elif [ -d "/mnt/SDCARD/Emus/PORTS/pr0-retroconsole" ]; then
   GAMEDIR="/mnt/SDCARD/Emus/PORTS/pr0-retroconsole"
 else
