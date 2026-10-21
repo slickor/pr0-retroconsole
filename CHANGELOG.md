@@ -7,6 +7,18 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.1] - 2026-10-21
+
+### Behoben
+- **DNS- & Verbindungs-Resilienz (muOS / TrimUI Fix):**
+  - **Automatischer Domain-Fallback (`pr0gramm.com` 🔁 `pr0.app`):** Sollte eine Domain (`pr0.app`) DNS-Auflösungsfehler (`Temporary failure in name resolution`) oder Verbindungsprobleme melden, wechselt die App automatisch zur Hauptdomain `pr0gramm.com` (und umgekehrt).
+  - **Wiederholungsversuche mit Backoff:** Temporäre DNS- und Verbindungsabbrüche beim Hochfahren der Handheld-WLAN-Verbindung werden bis zu 3-mal automatisch mit Pause wiederholt, statt direkt abzubrechen.
+  - **Auto-Retry & Manueller Reload bei leerem Feed:** Bei Verbindungsverlust beim Start versucht die App nun automatisch alle 3 Sekunden im Hintergrund den Feed nachzuladen, sobald WLAN bereit ist. Zudem kann mit der Taste `A` der Feed jederzeit manuell neu geladen werden.
+  - **KMSDRM & Vollbild-Garantie auf Embedded Linux (muOS / TrimUI):** Auf Handhelds erzwingt Pygame nun stets Vollbild-KMSDRM (`pygame.FULLSCREEN | pygame.DOUBLEBUF`), passt sich der nativen Display-Auflösung an (z. B. 1280x720 auf TrimUI Smart Pro) und verhindert unsichtbare Fenstermodi.
+  - **CDN-Fallback für Medien & Vorschaubilder:** Auch der Download-Cache probiert bei Netzwerkfehlern automatisch beide CDN-Domains (`pr0gramm.com` und `pr0.app`).
+
+---
+
 ## [0.4.0] - 2026-10-21
 
 ### Hinzugefügt

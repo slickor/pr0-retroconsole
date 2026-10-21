@@ -664,15 +664,41 @@ class UIRenderer:
         cache_manager: Any,
         scroll_row: int,
         header_focused: bool = False,
+        is_loading: bool = False,
     ) -> None:
         """Render the thumbnail grid viewport with smooth row scrolling."""
         self.screen.fill(self.color_bg)
 
         if not items:
-            msg = "Keine Beiträge geladen oder Feed ist leer."
-            mw = self.font_regular.size(msg)[0]
-            self.draw_text(self.screen, self.font_regular, msg, self.color_text_dim,
-                           ((self.width - mw) // 2, self.height // 2))
+            card_w = min(int(460 * self.scale), self.width - 32)
+            card_h = int(130 * self.scale)
+            card_x = (self.width - card_w) // 2
+            card_y = (self.height - card_h) // 2
+            card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
+
+            pygame.draw.rect(self.screen, self.color_card, card_rect, border_radius=8)
+            pygame.draw.rect(self.screen, self.color_card_border, card_rect, width=1, border_radius=8)
+
+            msg = "Lade Beiträge von pr0gramm..." if is_loading else "Keine Beiträge geladen (WLAN prüfen)"
+            sub_msg = "Warte auf Antwort vom Server..." if is_loading else "[A] Drücken zum Neuladen   •   [START] Setup"
+
+            mw = self.font_bold.size(msg)[0]
+            self.draw_text(
+                self.screen,
+                self.font_bold,
+                msg,
+                self.color_accent if is_loading else self.color_red,
+                ((self.width - mw) // 2, card_y + int(32 * self.scale)),
+            )
+
+            smw = self.font_small.size(sub_msg)[0]
+            self.draw_text(
+                self.screen,
+                self.font_small,
+                sub_msg,
+                self.color_text_dim if is_loading else self.color_text,
+                ((self.width - smw) // 2, card_y + int(72 * self.scale)),
+            )
             return
 
         total_items = len(items)

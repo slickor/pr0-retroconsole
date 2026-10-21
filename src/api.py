@@ -9,16 +9,22 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 import urllib.parse
 from typing import Any
 import requests
 
 logger = logging.getLogger("pr0.api")
 
-API_BASE = "https://pr0.app/api"
-CDN_THUMB = "https://thumb.pr0.app"
-CDN_IMG = "https://img.pr0.app"
-CDN_VID = "https://vid.pr0.app"
+API_HOSTS = [
+    "https://pr0gramm.com/api",
+    "https://pr0.app/api",
+]
+API_BASE = API_HOSTS[0]
+
+CDN_THUMB = "https://thumb.pr0gramm.com"
+CDN_IMG = "https://img.pr0gramm.com"
+CDN_VID = "https://vid.pr0gramm.com"
 
 try:
     from version import VERSION
@@ -82,7 +88,7 @@ def clean_cookie_val(val: str | None, prefix: str = "") -> str:
 
 
 class Pr0API:
-    """REST API Client for pr0gramm (pr0.app)."""
+    """REST API Client for pr0gramm (pr0gramm.com / pr0.app)."""
 
     def __init__(
         self,
@@ -91,6 +97,7 @@ class Pr0API:
         timeout: float = 10.0,
     ):
         self.timeout = timeout
+        self.api_base = API_HOSTS[0]
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT})
 
@@ -109,6 +116,40 @@ class Pr0API:
             # Automatically synchronize session to obtain latest av cookie
             self.sync_user_session()
 
+    def _request_with_fallback(
+        self,
+        method: str,
+        path: str,
+        max_retries: int = 3,
+        **kwargs: Any,
+    ) -> requests.Response:
+        """Execute HTTP request with automatic domain fallback and retry on network/DNS errors."""
+        last_exception: Exception | None = None
+        hosts_to_try = [self.api_base] + [h for h in API_HOSTS if h != self.api_base]
+        req_timeout = kwargs.pop("timeout", self.timeout)
+
+        for host in hosts_to_try:
+            url = f"{host}{path}"
+            for attempt in range(max_retries):
+                try:
+                    resp = self.session.request(method, url, timeout=req_timeout, **kwargs)
+                    resp.raise_for_status()
+                    if host != self.api_base:
+                        logger.info("Switched active API host to %s", host)
+                        self.api_base = host
+                    return resp
+                except (requests.ConnectionError, requests.Timeout) as e:
+                    last_exception = e
+                    logger.warning("Connection/DNS error to %s (attempt %d/%d): %s", url, attempt + 1, max_retries, e)
+                    if attempt < max_retries - 1:
+                        time.sleep(1.0)
+                except requests.HTTPError as e:
+                    raise e
+
+        if last_exception:
+            raise last_exception
+        raise RuntimeError(f"Request failed for {path} across all endpoints.")
+
     def sync_user_session(self) -> dict[str, Any]:
         """Synchronize user session with pr0gramm API.
 
@@ -123,31 +164,30 @@ class Pr0API:
         self.session.cookies.set("me", clean_me, domain="pr0.app")
         self.session.cookies.set("me", clean_me, domain="pr0gramm.com")
 
-        for endpoint in (f"{API_BASE}/user/me", "https://pr0gramm.com/api/user/me"):
-            try:
-                resp = self.session.get(endpoint, timeout=min(5.0, self.timeout))
-                if resp.status_code == 200:
-                    # Look for av cookie in response cookies
-                    av_found = resp.cookies.get("av") or self.session.cookies.get("av")
-                    if not av_found and "set-cookie" in resp.headers:
-                        m = re.search(r'\bav=([^;,\s]+)', resp.headers["set-cookie"])
-                        if m:
-                            av_found = m.group(1)
-                    if av_found:
-                        self.av_cookie = clean_cookie_val(av_found, "av=")
-                        self.session.cookies.set("av", self.av_cookie, domain="pr0.app")
-                        self.session.cookies.set("av", self.av_cookie, domain="pr0gramm.com")
-                        logger.info("Retrieved age-verification (av) cookie for NSFW/NSFL media")
+        try:
+            resp = self._request_with_fallback("GET", "/user/me", timeout=min(5.0, self.timeout))
+            if resp.status_code == 200:
+                # Look for av cookie in response cookies
+                av_found = resp.cookies.get("av") or self.session.cookies.get("av")
+                if not av_found and "set-cookie" in resp.headers:
+                    m = re.search(r'\bav=([^;,\s]+)', resp.headers["set-cookie"])
+                    if m:
+                        av_found = m.group(1)
+                if av_found:
+                    self.av_cookie = clean_cookie_val(av_found, "av=")
+                    self.session.cookies.set("av", self.av_cookie, domain="pr0.app")
+                    self.session.cookies.set("av", self.av_cookie, domain="pr0gramm.com")
+                    logger.info("Retrieved age-verification (av) cookie for NSFW/NSFL media")
 
-                    # Check for updated me cookie from server
-                    me_new = resp.cookies.get("me")
-                    if me_new:
-                        self.me_cookie = clean_cookie_val(me_new, "me=")
-                        self.username, self.nonce = parse_me_cookie(self.me_cookie)
+                # Check for updated me cookie from server
+                me_new = resp.cookies.get("me")
+                if me_new:
+                    self.me_cookie = clean_cookie_val(me_new, "me=")
+                    self.username, self.nonce = parse_me_cookie(self.me_cookie)
 
-                    return resp.json()
-            except Exception as e:
-                logger.debug("Failed session sync with %s: %s", endpoint, e)
+                return resp.json()
+        except Exception as e:
+            logger.debug("Failed session sync: %s", e)
 
         return {}
 
@@ -215,10 +255,8 @@ class Pr0API:
         if tags:
             params["tags"] = str(tags)
 
-        url = f"{API_BASE}/items/get"
         try:
-            resp = self.session.get(url, params=params, timeout=self.timeout)
-            resp.raise_for_status()
+            resp = self._request_with_fallback("GET", "/items/get", params=params)
             data = resp.json()
             return {
                 "items": data.get("items", []),
@@ -235,11 +273,9 @@ class Pr0API:
         :param item_id: The ID of the post
         :return: Dict with 'tags' and 'comments' lists
         """
-        url = f"{API_BASE}/items/info"
         params = {"itemId": int(item_id)}
         try:
-            resp = self.session.get(url, params=params, timeout=self.timeout)
-            resp.raise_for_status()
+            resp = self._request_with_fallback("GET", "/items/info", params=params)
             data = resp.json()
             return {
                 "tags": data.get("tags", []),
@@ -261,15 +297,13 @@ class Pr0API:
                 "error": "Login erforderlich! 'me_cookie' in config.json fehlt.",
             }
 
-        url = f"{API_BASE}/items/vote"
         data = {
             "id": int(item_id),
             "vote": int(vote_val),
             "_nonce": self.nonce,
         }
         try:
-            resp = self.session.post(url, data=data, timeout=self.timeout)
-            resp.raise_for_status()
+            resp = self._request_with_fallback("POST", "/items/vote", data=data)
             result = resp.json()
             return {"success": True, "result": result, "error": None}
         except Exception as e:
@@ -287,15 +321,13 @@ class Pr0API:
                 "error": "Login erforderlich! 'me_cookie' in config.json fehlt.",
             }
 
-        url = f"{API_BASE}/comments/vote"
         data = {
             "id": int(comment_id),
             "vote": int(vote_val),
             "_nonce": self.nonce,
         }
         try:
-            resp = self.session.post(url, data=data, timeout=self.timeout)
-            resp.raise_for_status()
+            resp = self._request_with_fallback("POST", "/comments/vote", data=data)
             result = resp.json()
             return {"success": True, "result": result, "error": None}
         except Exception as e:
@@ -319,7 +351,6 @@ class Pr0API:
         if not text:
             return {"success": False, "error": "Kommentar darf nicht leer sein."}
 
-        url = f"{API_BASE}/comments/post"
         data = {
             "itemId": int(item_id),
             "parentId": int(parent_id),
@@ -327,7 +358,12 @@ class Pr0API:
             "_nonce": self.nonce,
         }
         try:
-            resp = self.session.post(url, data=data, timeout=self.timeout)
+            resp = self._request_with_fallback("POST", "/comments/post", data=data)
+            result = resp.json()
+            return {"success": True, "result": result, "error": None}
+        except Exception as e:
+            logger.error("Error posting comment on item %d: %s", item_id, e)
+            return {"success": False, "error": str(e)}
             resp.raise_for_status()
             result = resp.json()
             return {"success": True, "result": result, "error": None}
@@ -372,10 +408,8 @@ class Pr0API:
         Returns dict with:
         'token': str, 'captcha': str (data:image/png;base64,...), 'error': str | None
         """
-        url = f"{API_BASE}/user/captcha"
         try:
-            resp = self.session.get(url, timeout=self.timeout)
-            resp.raise_for_status()
+            resp = self._request_with_fallback("GET", "/user/captcha")
             data = resp.json()
             return {
                 "token": str(data.get("token", "")),
@@ -398,7 +432,6 @@ class Pr0API:
         Returns dict with:
         'success': bool, 'username': str | None, 'me_cookie': str | None, 'error': str | None
         """
-        url = f"{API_BASE}/user/login"
         data = {
             "name": username.strip(),
             "password": password,
@@ -406,7 +439,7 @@ class Pr0API:
             "captcha": captcha.strip(),
         }
         try:
-            resp = self.session.post(url, data=data, timeout=self.timeout)
+            resp = self._request_with_fallback("POST", "/user/login", data=data)
             resp_data = resp.json() if resp.text else {}
 
             if resp.status_code == 200 and resp_data.get("success"):

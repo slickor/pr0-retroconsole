@@ -272,6 +272,10 @@ class Pr0App:
         self.login_status_color: tuple[int, int, int] | None = None
         self.login_success_pending: tuple[str, str] | None = None
 
+        # Network auto-retry tracking
+        self._last_feed_retry: float = time.time()
+        self._feed_retry_count: int = 0
+
         # Pygame & Display Setup
         pygame.init()
         # Release audio device in Pygame so external players (mpv) have exclusive ALSA access on Linux handhelds
@@ -280,17 +284,32 @@ class Pr0App:
                 pygame.mixer.quit()
             except Exception:
                 pass
+
         self.width, self.height, self.fullscreen = self._setup_resolution()
+        is_handheld = (os.name != "nt") and self.video.is_handheld
+
         if os.name == "nt":
             flags = pygame.FULLSCREEN if self.fullscreen else pygame.RESIZABLE
             self.screen = pygame.display.set_mode((self.width, self.height), flags)
         else:
-            # On Linux handhelds (ArkOS / KMSDRM / fbcon):
-            flags = pygame.FULLSCREEN if self.fullscreen else 0
+            # On Linux handhelds (TrimUI / muOS / ArkOS), use FULLSCREEN + DOUBLEBUF
+            flags = (pygame.FULLSCREEN | pygame.DOUBLEBUF) if (self.fullscreen or is_handheld) else 0
             try:
                 self.screen = pygame.display.set_mode((self.width, self.height), flags)
-            except Exception:
+            except Exception as e:
+                logger.warning("Could not set display mode (%d, %d, flags=%d): %s, fallback to default",
+                               self.width, self.height, flags, e)
                 self.screen = pygame.display.set_mode((self.width, self.height))
+
+        # Query actual surface dimensions in case SDL adapted to physical display
+        real_w, real_h = self.screen.get_size()
+        if real_w != self.width or real_h != self.height:
+            logger.info("Display surface adapted to native %dx%d (requested %dx%d)", real_w, real_h, self.width, self.height)
+            self.width, self.height = real_w, real_h
+
+        driver = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else "unknown"
+        logger.info("Pygame display initialized: %dx%d (fullscreen=%s, driver=%s)",
+                    self.width, self.height, self.fullscreen, driver)
         pygame.display.set_caption("pr0-retroconsole")
 
         self.clock = pygame.time.Clock()
@@ -307,22 +326,34 @@ class Pr0App:
         h = int(self.config.get("height", 480))
         fs = bool(self.config.get("fullscreen", False))
 
+        # On Linux handhelds (TrimUI / R36S / muOS / ArkOS), always enforce fullscreen!
+        is_handheld = (os.name != "nt") and self.video.is_handheld
+        if is_handheld:
+            fs = True
+
         if res_cfg == "640x480":
             return 640, 480, fs
         elif res_cfg == "1280x720":
             return 1280, 720, fs
+        elif res_cfg == "1024x768":
+            return 1024, 768, fs
         elif res_cfg == "auto":
             # Auto-detect display modes
             try:
+                desktop_sizes = pygame.display.get_desktop_sizes()
+                if desktop_sizes and desktop_sizes[0][0] > 0 and desktop_sizes[0][1] > 0:
+                    dw, dh = desktop_sizes[0]
+                    logger.info("Detected desktop native resolution: %dx%d", dw, dh)
+                    return dw, dh, fs
+            except Exception:
+                pass
+
+            try:
                 display_info = pygame.display.Info()
                 cur_w, cur_h = display_info.current_w, display_info.current_h
-                # Check for standard handheld sizes
-                if cur_w == 640 and cur_h == 480:
-                    return 640, 480, True
-                elif cur_w == 1280 and cur_h == 720:
-                    return 1280, 720, True
-                elif os.name != "nt" and self.video.is_handheld:
-                    return cur_w, cur_h, True
+                if cur_w > 0 and cur_h > 0:
+                    logger.info("Detected display info resolution: %dx%d", cur_w, cur_h)
+                    return cur_w, cur_h, fs
             except Exception:
                 pass
 
@@ -910,19 +941,27 @@ class Pr0App:
         elif action == ACTION_RIGHT and total > 0:
             if self.selected_idx % cols < cols - 1 and self.selected_idx < total - 1:
                 self.selected_idx += 1
-        elif action == ACTION_SELECT and total > 0:
-            # Open selected post
-            self.state = STATE_POST
-            self.post_scroll_y = 0
-            self.post_focus_idx = 0
-            self.comment_modal_open = False
-            self.virtual_keyboard = None
-            # Preload full image or video and fetch tags & comments
-            item = self.items[self.selected_idx]
-            self.cache.request_download(Pr0API.get_media_url(item), priority=0)
-            self.fetch_post_info(item["id"])
-            self._update_inline_video()
-            return
+        elif action == ACTION_SELECT:
+            if total > 0:
+                # Open selected post
+                self.state = STATE_POST
+                self.post_scroll_y = 0
+                self.post_focus_idx = 0
+                self.comment_modal_open = False
+                self.virtual_keyboard = None
+                # Preload full image or video and fetch tags & comments
+                item = self.items[self.selected_idx]
+                self.cache.request_download(Pr0API.get_media_url(item), priority=0)
+                self.fetch_post_info(item["id"])
+                self._update_inline_video()
+                return
+            else:
+                # Feed is empty / connection error: manual reload
+                self.set_toast("Verbinde mit pr0gramm...", COLOR_ORANGE, duration=2.5)
+                self._last_feed_retry = time.time()
+                self._feed_retry_count = 0
+                self.fetch_feed(append=False)
+                return
         elif action == ACTION_SETTINGS:
             # Open Settings with START
             self.state = STATE_SETTINGS
@@ -1523,6 +1562,8 @@ class Pr0App:
                             if it["id"] not in existing_ids:
                                 self.items.append(it)
                     self.is_fetching_feed = False
+                    if self.items:
+                        self._feed_retry_count = 0
                     logger.info("Feed updated: %d total items (atEnd=%s, images_only=%s)", len(self.items), self.at_end, self.images_only)
                     # Trigger background thumbnail preload for upcoming items
                     self.cache.preload_items(self.items, count=len(self.items))
@@ -1548,6 +1589,8 @@ class Pr0App:
                 logger.error("Task %s failed: %s", task_type, err)
                 if task_type in ("feed_fresh", "feed_append"):
                     self.is_fetching_feed = False
+                    if self.items:
+                        self._feed_retry_count = 0
                     self.set_toast("Fehler beim Laden des Feeds!", COLOR_RED, duration=2.5)
                 elif task_type == "post_info":
                     self.is_loading_info = False
@@ -1577,6 +1620,7 @@ class Pr0App:
                 self.cache,
                 self.grid_scroll_row,
                 header_focused=self.header_focus,
+                is_loading=self.is_fetching_feed,
             )
             self.ui.render_header(
                 mode_label=mode_label,
@@ -1590,7 +1634,13 @@ class Pr0App:
                 header_focused=self.header_focus,
                 header_idx=self.header_idx,
             )
-            if self.header_focus:
+            if not self.items:
+                footer_hints = [
+                    ("A", "Neu laden"),
+                    ("START", "Setup"),
+                    ("B", "Beenden"),
+                ]
+            elif self.header_focus:
                 footer_hints = [
                     ("D-Pad", "Wählen"),
                     ("A", "An/Aus"),
@@ -1762,6 +1812,16 @@ class Pr0App:
                 self.state = STATE_GRID
 
             self._process_background_tasks()
+
+            # Auto-retry initial feed load if empty and not currently fetching (e.g. WiFi connects a few seconds after boot)
+            if not self.items and not self.is_fetching_feed and self.state == STATE_GRID and self._feed_retry_count < 6:
+                now = time.time()
+                if now - self._last_feed_retry > 3.0:
+                    self._last_feed_retry = now
+                    self._feed_retry_count += 1
+                    logger.info("Auto-retrying feed fetch (attempt %d/6)...", self._feed_retry_count)
+                    self.fetch_feed(append=False)
+
             completed_urls = self.cache.process_completed()
             if completed_urls and self.state == STATE_POST and self.items and self.autoplay_video:
                 curr_item = self.items[self.selected_idx]

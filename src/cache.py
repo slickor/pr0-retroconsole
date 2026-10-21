@@ -213,7 +213,18 @@ class MediaCache:
                     elif "Cookie" in session.headers:
                         del session.headers["Cookie"]
 
-                    resp = session.get(url, timeout=12.0)
+                    try:
+                        resp = session.get(url, timeout=12.0)
+                    except (requests.ConnectionError, requests.Timeout) as dl_err:
+                        alt_url = None
+                        if "pr0.app" in url:
+                            alt_url = url.replace("pr0.app", "pr0gramm.com")
+                        elif "pr0gramm.com" in url:
+                            alt_url = url.replace("pr0gramm.com", "pr0.app")
+                        if alt_url:
+                            resp = session.get(alt_url, timeout=12.0)
+                        else:
+                            raise dl_err
                     if resp.status_code == 200 and resp.content:
                         part_file = local_path.with_suffix(".part")
                         part_file.write_bytes(resp.content)
