@@ -545,14 +545,8 @@ class UIRenderer:
 
                     x += pill_w + int(6 * self.scale)
 
-        # 4. Right Section (Stream count, pr0mium Star, User/Anmelden, Settings Hint)
-        rx = self.width - 10
-
-        # Settings icon / hint
-        gear_txt = "[X]"
-        gw = self.font_small.size(gear_txt)[0]
-        self.draw_text(self.screen, self.font_small, gear_txt, self.color_text_dim, (rx - gw, center_y - self.font_small.get_height() // 2))
-        rx -= gw + int(10 * self.scale)
+        # 4. Right Section (Stream count, pr0mium Star, User/Anmelden)
+        rx = self.width - int(12 * self.scale)
 
         # User Profile or "anmelden"
         if username:

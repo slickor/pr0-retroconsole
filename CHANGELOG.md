@@ -7,6 +7,14 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.11] - 2026-10-21
+
+### Entfernt
+- **Obsoleten `[X]`-Hinweis im Header entfernt:**
+  - Die Beschriftung `[X]` ganz oben rechts im Header stammte noch aus Versionen, in denen die Taste X das Setup öffnete. Da Einstellungen nun einheitlich über `START` aufgerufen werden (und im Footer dokumentiert sind), wurde das Element entfernt. Der Header wirkt dadurch deutlich aufgeräumter.
+
+---
+
 ## [0.3.10] - 2026-10-21
 
 ### Hinzugefügt
