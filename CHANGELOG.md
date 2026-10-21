@@ -7,7 +7,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
-## [0.3.17] - 2026-10-21
+## [0.4.0] - 2026-10-21
 
 ### Hinzugefügt
 - **Interaktive Kommentare (Upvote / Downvote & Antworten):**
