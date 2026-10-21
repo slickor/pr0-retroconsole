@@ -210,6 +210,8 @@ class Pr0App:
         self.toast_color: tuple[int, int, int] = COLOR_ORANGE
         self.input_freeze_until: float = 0.0
         self.exit_confirm_time: float = 0.0
+        self._cached_progress: tuple[int, int, float] = (0, 0, 1.0)
+        self._last_progress_calc: float = 0.0
 
         # Threading / Background tasks
         self.task_queue: queue.Queue[dict[str, Any]] = queue.Queue()
@@ -1197,6 +1199,8 @@ class Pr0App:
                                 self.items.append(it)
                     self.is_fetching_feed = False
                     logger.info("Feed updated: %d total items (atEnd=%s)", len(self.items), self.at_end)
+                    # Trigger background thumbnail preload for upcoming items
+                    self.cache.preload_items(self.items, count=len(self.items))
                 elif task_type == "post_info":
                     self.current_post_info = result
                     self.is_loading_info = False
@@ -1218,6 +1222,12 @@ class Pr0App:
         mode_label = "Beliebt" if self.promoted == 1 else "Neu"
         flags_label = Pr0API.get_flag_string(self.flags)
         toast_active = self.toast_msg if (self.toast_msg and time.time() < self.toast_time) else None
+
+        # Periodically recalculate cache progress for the footer bar
+        now = time.time()
+        if now - self._last_progress_calc > 0.25 and self.items:
+            self._last_progress_calc = now
+            self._cached_progress = self.cache.get_progress(self.items)
 
         if self.state == STATE_GRID:
             # 1. Grid View
@@ -1261,6 +1271,7 @@ class Pr0App:
                 hints=footer_hints,
                 toast_message=toast_active,
                 toast_color=self.toast_color,
+                cache_progress=self._cached_progress,
             )
 
         elif self.state == STATE_SETTINGS:
@@ -1325,6 +1336,7 @@ class Pr0App:
                 hints=hints,
                 toast_message=toast_active,
                 toast_color=self.toast_color,
+                cache_progress=self._cached_progress,
             )
 
         elif self.state == STATE_LOGIN:

@@ -183,8 +183,8 @@ class UIRenderer:
             self.card_size = 125
             self.grid_gap = 14
 
-        self.header_height = int(38 * self.scale)
-        self.footer_height = int(32 * self.scale)
+        self.header_height = int(46 * self.scale)
+        self.footer_height = int(38 * self.scale)
 
     def set_theme(self, theme_key: str = "pr0_dark", accent_key: str = "orange") -> None:
         """Apply active theme and accent colors across the UI."""
@@ -226,15 +226,15 @@ class UIRenderer:
                     pass
             return pygame.font.Font(None, scaled_size)
 
-        self.font_logo = load(font_inter, 18)
+        self.font_logo = load(font_inter, 20)
         self.font_logo.set_bold(True)
-        self.font_title = load(font_inter, 17)
+        self.font_title = load(font_inter, 18)
         self.font_title.set_bold(True)
-        self.font_regular = load(font_inter, 13)
-        self.font_bold = load(font_inter, 13)
+        self.font_regular = load(font_inter, 14)
+        self.font_bold = load(font_inter, 14)
         self.font_bold.set_bold(True)
-        self.font_small = load(font_inter, 11)
-        self.font_mono = load(font_fira, 11)
+        self.font_small = load(font_inter, 12)
+        self.font_mono = load(font_fira if font_fira.is_file() else font_inter, 12)
 
     def update_resolution(self, width: int, height: int) -> None:
         """Handle dynamic resolution adjustments."""
@@ -410,11 +410,11 @@ class UIRenderer:
         x = 10
 
         # 1. Iconic pr0.app Logo Badge
-        badge_w = int(36 * self.scale)
-        badge_h = int(22 * self.scale)
+        badge_w = int(42 * self.scale)
+        badge_h = int(26 * self.scale)
         badge_y = center_y - badge_h // 2
         logo_rect = pygame.Rect(x, badge_y, badge_w, badge_h)
-        pygame.draw.rect(self.screen, self.color_accent, logo_rect, border_radius=4)
+        pygame.draw.rect(self.screen, self.color_accent, logo_rect, border_radius=5)
 
         logo_surf = self.font_logo.render("pr0", True, (255, 255, 255))
         self.screen.blit(
@@ -422,11 +422,11 @@ class UIRenderer:
             (logo_rect.centerx - logo_surf.get_width() // 2,
              logo_rect.centery - logo_surf.get_height() // 2),
         )
-        x += badge_w + int(4 * self.scale)
+        x += badge_w + int(6 * self.scale)
 
         # ".app" domain suffix in sleek dim typography
         dot_app_w = self.draw_text(self.screen, self.font_bold, ".app", self.color_text_dim, (x, center_y - self.font_bold.get_height() // 2))
-        x += dot_app_w + int(14 * self.scale)
+        x += dot_app_w + int(16 * self.scale)
 
         # 2. Main Navigation Tabs: "neu" and "beliebt" (all lowercase, matching pr0.app)
         is_promoted = (promoted == 1) if promoted is not None else (mode_label.lower() in ("beliebt", "top"))
@@ -439,7 +439,7 @@ class UIRenderer:
         neu_w = self.draw_text(self.screen, neu_font, "neu", neu_color, (x, neu_y))
 
         if header_focused and header_idx == 0:
-            neu_box = pygame.Rect(x - int(5 * self.scale), center_y - int(12 * self.scale), neu_w + int(10 * self.scale), int(24 * self.scale))
+            neu_box = pygame.Rect(x - int(6 * self.scale), center_y - int(14 * self.scale), neu_w + int(12 * self.scale), int(28 * self.scale))
             pygame.draw.rect(self.screen, self.color_accent, neu_box, width=2, border_radius=4)
         elif neu_is_active:
             underline_h = max(2, int(3 * self.scale))
@@ -459,7 +459,7 @@ class UIRenderer:
         beliebt_w = self.draw_text(self.screen, beliebt_font, "beliebt", beliebt_color, (x, beliebt_y))
 
         if header_focused and header_idx == 1:
-            bel_box = pygame.Rect(x - int(5 * self.scale), center_y - int(12 * self.scale), beliebt_w + int(10 * self.scale), int(24 * self.scale))
+            bel_box = pygame.Rect(x - int(6 * self.scale), center_y - int(14 * self.scale), beliebt_w + int(12 * self.scale), int(28 * self.scale))
             pygame.draw.rect(self.screen, self.color_accent, bel_box, width=2, border_radius=4)
         elif beliebt_is_active:
             underline_h = max(2, int(3 * self.scale))
@@ -472,7 +472,7 @@ class UIRenderer:
         x += beliebt_w + int(14 * self.scale)
 
         # Subtle vertical divider line
-        div_h = int(14 * self.scale)
+        div_h = int(18 * self.scale)
         pygame.draw.line(
             self.screen,
             self.color_card_border,
@@ -503,7 +503,7 @@ class UIRenderer:
             ("pol", 8, (130, 165, 215), (20, 32, 48)),
         ]
 
-        pill_h = int(18 * self.scale)
+        pill_h = int(22 * self.scale)
         pill_y = center_y - pill_h // 2
 
         for i, (f_label, f_mask, f_fg, f_bg) in enumerate(flag_defs):
@@ -513,35 +513,35 @@ class UIRenderer:
 
             f_txt_w = self.font_small.size(f_label)[0]
             if is_flag_on:
-                pill_w = f_txt_w + int(16 * self.scale)
+                pill_w = f_txt_w + int(18 * self.scale)
                 if x + pill_w < self.width - 120:
                     pill_rect = pygame.Rect(x, pill_y, pill_w, pill_h)
-                    pygame.draw.rect(self.screen, f_bg, pill_rect, border_radius=3)
-                    pygame.draw.rect(self.screen, f_fg, pill_rect, width=1, border_radius=3)
-                    dot_r = max(2, int(2.5 * self.scale))
-                    pygame.draw.circle(self.screen, f_fg, (x + int(6 * self.scale), center_y), dot_r)
-                    self.draw_text(self.screen, self.font_small, f_label, f_fg, (x + int(12 * self.scale), center_y - self.font_small.get_height() // 2))
+                    pygame.draw.rect(self.screen, f_bg, pill_rect, border_radius=4)
+                    pygame.draw.rect(self.screen, f_fg, pill_rect, width=1, border_radius=4)
+                    dot_r = max(2, int(3 * self.scale))
+                    pygame.draw.circle(self.screen, f_fg, (x + int(7 * self.scale), center_y), dot_r)
+                    self.draw_text(self.screen, self.font_small, f_label, f_fg, (x + int(14 * self.scale), center_y - self.font_small.get_height() // 2))
 
                     if is_focused:
                         focus_rect = pill_rect.inflate(int(4 * self.scale), int(4 * self.scale))
-                        pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=2, border_radius=4)
+                        pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=2, border_radius=5)
                         caret_y = self.header_height - 2
-                        pygame.draw.line(self.screen, self.color_accent, (pill_rect.centerx - int(5 * self.scale), caret_y), (pill_rect.centerx + int(5 * self.scale), caret_y), 2)
+                        pygame.draw.line(self.screen, self.color_accent, (pill_rect.centerx - int(6 * self.scale), caret_y), (pill_rect.centerx + int(6 * self.scale), caret_y), 2)
 
                     x += pill_w + int(8 * self.scale)
             else:
-                pill_w = f_txt_w + int(10 * self.scale)
+                pill_w = f_txt_w + int(12 * self.scale)
                 if x + pill_w < self.width - 120:
                     pill_rect = pygame.Rect(x, pill_y, pill_w, pill_h)
                     if is_focused:
-                        pygame.draw.rect(self.screen, (35, 35, 42), pill_rect, border_radius=3)
-                        self.draw_text(self.screen, self.font_small, f_label, self.color_text_dim, (x + int(5 * self.scale), center_y - self.font_small.get_height() // 2))
+                        pygame.draw.rect(self.screen, (35, 35, 42), pill_rect, border_radius=4)
+                        self.draw_text(self.screen, self.font_small, f_label, self.color_text_dim, (x + int(6 * self.scale), center_y - self.font_small.get_height() // 2))
                         focus_rect = pill_rect.inflate(int(4 * self.scale), int(4 * self.scale))
-                        pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=2, border_radius=4)
+                        pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=2, border_radius=5)
                         caret_y = self.header_height - 2
-                        pygame.draw.line(self.screen, self.color_accent, (pill_rect.centerx - int(5 * self.scale), caret_y), (pill_rect.centerx + int(5 * self.scale), caret_y), 2)
+                        pygame.draw.line(self.screen, self.color_accent, (pill_rect.centerx - int(6 * self.scale), caret_y), (pill_rect.centerx + int(6 * self.scale), caret_y), 2)
                     else:
-                        self.draw_text(self.screen, self.font_small, f_label, self.color_card_border, (x + int(4 * self.scale), center_y - self.font_small.get_height() // 2))
+                        self.draw_text(self.screen, self.font_small, f_label, self.color_card_border, (x + int(6 * self.scale), center_y - self.font_small.get_height() // 2))
 
                     x += pill_w + int(6 * self.scale)
 
@@ -589,40 +589,62 @@ class UIRenderer:
         hints: list[tuple[str, str]],
         toast_message: str | None = None,
         toast_color: tuple[int, int, int] | None = None,
+        cache_progress: tuple[int, int, float] | None = None,
     ) -> None:
-        """Render bottom status bar with control hints and popup notifications."""
+        """Render bottom status bar with control hints, cache progress bar, and notifications."""
         footer_y = self.height - self.footer_height
         footer_rect = pygame.Rect(0, footer_y, self.width, self.footer_height)
         pygame.draw.rect(self.screen, self.color_card, footer_rect)
         pygame.draw.line(self.screen, self.color_card_border, (0, footer_y), (self.width, footer_y), 1)
 
-        # Draw control hints
+        center_y = footer_y + self.footer_height // 2
+
+        # 1. Sleek Cache Progress Bar across top edge of footer
+        bar_h = max(2, int(3 * self.scale))
+        if cache_progress is not None and cache_progress[1] > 0:
+            cached_cnt, total_cnt, ratio = cache_progress
+            # Background track
+            pygame.draw.rect(self.screen, (32, 32, 38), (0, footer_y, self.width, bar_h))
+            # Filled bar (accent color)
+            fill_w = max(0, min(self.width, int(self.width * ratio)))
+            pygame.draw.rect(self.screen, self.color_accent, (0, footer_y, fill_w, bar_h))
+            # Subtle glow indicator at leading tip if still caching
+            if ratio < 1.0 and fill_w > 0:
+                glow_w = max(2, int(4 * self.scale))
+                pygame.draw.rect(self.screen, (255, 255, 255), (max(0, fill_w - glow_w), footer_y, glow_w, bar_h))
+
+        # 2. Control hints on left (vertically centered)
         x = 12
         for button_label, action_desc in hints:
             badge_text = f"[{button_label}]"
-            bw = self.draw_text(self.screen, self.font_small, badge_text, self.color_accent, (x, footer_y + 8))
+            bw = self.draw_text(self.screen, self.font_small, badge_text, self.color_accent, (x, center_y - self.font_small.get_height() // 2))
             x += bw + 3
-            dw = self.draw_text(self.screen, self.font_small, action_desc, self.color_text, (x, footer_y + 8))
+            dw = self.draw_text(self.screen, self.font_small, action_desc, self.color_text, (x, center_y - self.font_small.get_height() // 2))
             x += dw + 14
-            if x > self.width - 160:
+            if x > self.width - 200:
                 break
 
-        # Toast / Flash Notification (Right aligned, fallback to Version)
+        # 3. Toast / Flash Notification (Right aligned, takes precedence)
         if toast_message:
             tw = self.font_small.size(toast_message)[0]
             toast_x = self.width - tw - 14
-            pygame.draw.rect(
-                self.screen,
-                self.color_bg,
-                (toast_x - 6, footer_y + 4, tw + 12, self.footer_height - 8),
-                border_radius=4,
-            )
+            toast_rect = pygame.Rect(toast_x - 6, center_y - (self.footer_height - 12) // 2, tw + 12, self.footer_height - 12)
+            pygame.draw.rect(self.screen, self.color_bg, toast_rect, border_radius=4)
             col = toast_color if toast_color is not None else self.color_accent
-            self.draw_text(self.screen, self.font_small, toast_message, col, (toast_x, footer_y + 8))
+            self.draw_text(self.screen, self.font_small, toast_message, col, (toast_x, center_y - self.font_small.get_height() // 2))
         else:
-            ver_text = f"v{VERSION}"
-            vw = self.font_small.size(ver_text)[0]
-            self.draw_text(self.screen, self.font_small, ver_text, self.color_text_dim, (self.width - vw - 14, footer_y + 8))
+            # 4. Cache status badge or Version text on right
+            if cache_progress is not None and cache_progress[1] > 0 and cache_progress[2] < 1.0:
+                cached_cnt, total_cnt, ratio = cache_progress
+                pct = int(ratio * 100)
+                prog_txt = f"Cache: {cached_cnt}/{total_cnt} ({pct}%)"
+                pw = self.font_small.size(prog_txt)[0]
+                px = self.width - pw - 14
+                self.draw_text(self.screen, self.font_small, prog_txt, self.color_accent, (px, center_y - self.font_small.get_height() // 2))
+            else:
+                ver_text = f"v{VERSION}"
+                vw = self.font_small.size(ver_text)[0]
+                self.draw_text(self.screen, self.font_small, ver_text, self.color_text_dim, (self.width - vw - 14, center_y - self.font_small.get_height() // 2))
 
     # -------------------------------------------------------------------------
     # 1. Grid View

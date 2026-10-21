@@ -7,6 +7,23 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.9] - 2026-10-21
+
+### Hinzugefügt
+- **Echtzeit Caching-Fortschrittsbalken im Footer:**
+  - Sobald neue Beiträge geladen werden, lädt die App Thumbnails im Hintergrund automatisch vor (`preload_items`).
+  - Eine elegante Lade-Linie am oberen Rand des Footers visualisiert den Caching-Fortschritt in Echtzeit in pr0-Orange mit weißem Leuchtpunkt.
+  - Auf der rechten Seite des Footers informiert eine dezente Statusanzeige über den aktuellen Vorlade-Status (z.B. `Cache: 38/60 (63%)`), die nach Abschluss zu `v0.3.9` wechselt.
+- **Größerer Header & Footer für verbesserte Lesbarkeit:**
+  - Header-Höhe von 38 px auf **46 px** vergrößert (auf 16:9-Displays entsprechend skaliert).
+  - Footer-Höhe von 32 px auf **38 px** vergrößert.
+  - Größere Touch- & Navigations-Pills (22 px statt 18 px) und angepasste Schriftgrößen (+1-2 pt) sorgen auf kleinen 3,5" und 5" Handheld-Displays für deutlich angenehmere Ablesbarkeit.
+- **Asset-Bereinigung (Unbenutzte Fonts entfernt):**
+  - Die ungenutzte Pixel-Schriftart `assets/fonts/m5x7.ttf` wurde gelöscht.
+  - Robuste Fallbacks auf `Inter-Regular.ttf` implementiert.
+
+---
+
 ## [0.3.8] - 2026-10-21
 
 ### Hinzugefügt

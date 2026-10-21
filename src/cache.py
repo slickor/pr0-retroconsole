@@ -49,6 +49,9 @@ class MediaCache:
         self._pending_urls: set[str] = set()
         self._pending_lock = threading.Lock()
 
+        # Fast lookup set of confirmed cached URLs (0% disk overhead)
+        self._cached_urls: set[str] = set()
+
         # Task queue: tuple of (priority, url, local_path, is_thumb)
         # Lower priority number = processed first (0: urgent/fullsize, 1: visible thumb, 2: preload)
         self._queue: queue.PriorityQueue[tuple[int, float, str, str, bool]] = queue.PriorityQueue()
@@ -217,6 +220,48 @@ class MediaCache:
         except Exception as e:
             logger.warning("Cache cleanup error: %s", e)
 
+    def is_cached(self, url: str) -> bool:
+        """Check if URL is available in memory or on disk."""
+        if not url:
+            return False
+        if url in self._cached_urls:
+            return True
+        with self._surface_lock:
+            if url in self._surface_cache:
+                self._cached_urls.add(url)
+                return True
+        local_path = self._url_to_path(url)
+        if local_path.is_file() and local_path.stat().st_size > 0:
+            self._cached_urls.add(url)
+            return True
+        return False
+
+    def preload_items(self, items: list[dict[str, Any]], count: int = 60) -> None:
+        """Enqueue background downloads for feed thumbnails with low priority."""
+        for item in items[:count]:
+            thumb = item.get("thumb")
+            if thumb:
+                url = f"https://thumb.pr0gramm.com/{thumb}"
+                if not self.is_cached(url):
+                    self.request_download(url, priority=2)
+
+    def get_progress(self, items: list[dict[str, Any]]) -> tuple[int, int, float]:
+        """Calculate cache progress for the provided list of items.
+        Returns: (cached_count, total_count, ratio_float)
+        """
+        if not items:
+            return 0, 0, 1.0
+        total = len(items)
+        cached = 0
+        for it in items:
+            thumb = it.get("thumb")
+            if thumb:
+                url = f"https://thumb.pr0gramm.com/{thumb}"
+                if self.is_cached(url):
+                    cached += 1
+        ratio = cached / total if total > 0 else 1.0
+        return cached, total, ratio
+
     def get_local_path(self, url: str) -> str | None:
         """Return absolute path to cached file if available on disk, else None."""
         if not url:
@@ -234,9 +279,11 @@ class MediaCache:
                 url, local_path_str, success = self._completed_queue.get_nowait()
                 if success:
                     completed_urls.append(url)
+                    self._cached_urls.add(url)
             except queue.Empty:
                 break
         return completed_urls
+
     def clear_all(self) -> int:
         """Delete all cached files on disk and clear in-memory surfaces. Returns count of deleted files."""
         count = 0
@@ -252,6 +299,7 @@ class MediaCache:
 
         with self._surface_lock:
             self._surface_cache.clear()
+        self._cached_urls.clear()
 
         logger.info("Cache cleared: %d files deleted.", count)
         return count
