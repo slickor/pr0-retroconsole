@@ -292,26 +292,63 @@ class Pr0App:
             flags = pygame.FULLSCREEN if self.fullscreen else pygame.RESIZABLE
             self.screen = pygame.display.set_mode((self.width, self.height), flags)
         else:
-            # On Linux handhelds (TrimUI / muOS / ArkOS), use FULLSCREEN + DOUBLEBUF
+            # On Linux handhelds (TrimUI / muOS / ArkOS / Knulli), ensure a REAL physical display is used
             flags = (pygame.FULLSCREEN | pygame.DOUBLEBUF) if (self.fullscreen or is_handheld) else 0
-            try:
-                self.screen = pygame.display.set_mode((self.width, self.height), flags)
-            except Exception as e:
-                logger.warning("Could not set display mode (%d, %d, flags=%d): %s, fallback to default",
-                               self.width, self.height, flags, e)
-                # If a specific driver like kmsdrm failed, remove from env and re-init display subsystem
-                if "SDL_VIDEODRIVER" in os.environ:
-                    driver_val = os.environ.pop("SDL_VIDEODRIVER", None)
-                    logger.warning("Removed forced SDL_VIDEODRIVER=%s, reinitializing pygame display...", driver_val)
+            res_cfg = str(self.config.get("resolution", "auto")).lower()
+
+            def try_create_surface(req_w: int, req_h: int, fl: int) -> pygame.Surface | None:
+                try:
+                    # On handhelds with res_cfg == 'auto', (0, 0) allows KMSDRM/SDL to use native panel resolution
+                    size = (0, 0) if (res_cfg == "auto" and (fl & pygame.FULLSCREEN)) else (req_w, req_h)
+                    surf = pygame.display.set_mode(size, fl)
+                    drv = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else ""
+                    if drv in ("offscreen", "dummy"):
+                        # 'offscreen' or 'dummy' does not render to any physical screen
+                        return None
+                    return surf
+                except Exception as ex:
+                    logger.debug("try_create_surface failed (%dx%d, flags=%d): %s", req_w, req_h, fl, ex)
+                    return None
+
+            # First attempt: Try current SDL driver / environment
+            self.screen = try_create_surface(self.width, self.height, flags)
+            if self.screen is None:
+                # Try without DOUBLEBUF
+                self.screen = try_create_surface(self.width, self.height, pygame.FULLSCREEN if self.fullscreen else 0)
+
+            # If current driver is offscreen/dummy or failed, try hardware display backends
+            if self.screen is None:
+                logger.warning("Default display driver is not a physical screen (or failed). Trying hardware video backends...")
+                hw_drivers = ["kmsdrm", "mali", "fbcon", "wayland", "x11"]
+                for hw_cand in hw_drivers:
                     try:
+                        os.environ["SDL_VIDEODRIVER"] = hw_cand
                         pygame.display.quit()
                         pygame.display.init()
-                    except Exception:
-                        pass
+                        test_drv = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else ""
+                        if test_drv not in ("offscreen", "dummy"):
+                            self.screen = try_create_surface(self.width, self.height, flags)
+                            if self.screen is None:
+                                self.screen = try_create_surface(self.width, self.height, pygame.FULLSCREEN if self.fullscreen else 0)
+                            if self.screen is not None:
+                                logger.info("Successfully activated hardware display backend: %s", hw_cand)
+                                break
+                    except Exception as ex_drv:
+                        logger.debug("Hardware driver candidate '%s' failed: %s", hw_cand, ex_drv)
+                        continue
+
+            # Fallback if no candidate worked
+            if self.screen is None:
+                logger.warning("Hardware display drivers exhausted, falling back to basic display init")
+                os.environ.pop("SDL_VIDEODRIVER", None)
+                try:
+                    pygame.display.quit()
+                    pygame.display.init()
+                except Exception:
+                    pass
                 try:
                     self.screen = pygame.display.set_mode((self.width, self.height), pygame.FULLSCREEN if self.fullscreen else 0)
-                except Exception as e2:
-                    logger.warning("Fallback with flags failed (%s), trying basic set_mode...", e2)
+                except Exception:
                     self.screen = pygame.display.set_mode((self.width, self.height))
 
         # Query actual surface dimensions in case SDL adapted to physical display

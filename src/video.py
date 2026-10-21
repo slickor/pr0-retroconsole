@@ -22,7 +22,7 @@ import struct
 
 logger = logging.getLogger("pr0.video")
 
-# Keybindings for mpv input configuration
+# Keybindings for mpv input configuration (Standard Nintendo layout: A=East=Play/Pause, B=South=Quit)
 MPV_INPUT_CONF_CONTENT = """# pr0-retroconsole mpv controls
 # Seeking controls (10% jumps with visual OSD progress bar)
 RIGHT osd-msg-bar seek 10 relative-percent
@@ -34,16 +34,18 @@ GAMEPAD_ACTION_LEFT osd-msg-bar seek -10 relative-percent
 BTN_DPAD_RIGHT osd-msg-bar seek 10 relative-percent
 BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
 
-# Playback controls
+# Playback controls (A button on Nintendo / East / Enter)
 SPACE cycle pause
 ENTER cycle pause
 a cycle pause
 A cycle pause
-GAMEPAD_ACTION_DOWN cycle pause
-BTN_A cycle pause
-BTN_SOUTH cycle pause
+GAMEPAD_ACTION_RIGHT cycle pause
+BTN_EAST cycle pause
+BTN_B cycle pause
+JOY_BTN1 cycle pause
+JOY_B cycle pause
 
-# Quit controls
+# Quit controls (B button on Nintendo / South / Escape)
 b quit
 B quit
 esc quit
@@ -52,13 +54,14 @@ q quit
 Q quit
 backspace quit
 BACKSPACE quit
+GAMEPAD_ACTION_DOWN quit
 GAMEPAD_BACK quit
-BTN_B quit
-BTN_EAST quit
+BTN_SOUTH quit
+BTN_A quit
 BTN_SELECT quit
 BTN_START cycle pause
-JOY_BTN1 quit
-JOY_B quit
+JOY_BTN0 quit
+JOY_A quit
 """
 
 _DURATION_CACHE: dict[str, float] = {}
@@ -661,8 +664,92 @@ class VideoPlayer:
         """Return True if an executable video player is available."""
         return self.player_path is not None and self.player_type is not None
 
+    def _generate_mpv_input_conf(self) -> str:
+        """Generate mpv input bindings matching active button layout."""
+        if self.button_layout == "inverted":
+            # Inverted (Xbox style: B=Play/Pause, A=Quit/Back)
+            play_bindings = """
+SPACE cycle pause
+ENTER cycle pause
+b cycle pause
+B cycle pause
+GAMEPAD_ACTION_DOWN cycle pause
+BTN_SOUTH cycle pause
+BTN_A cycle pause
+JOY_BTN0 cycle pause
+JOY_A cycle pause
+"""
+            quit_bindings = """
+esc quit
+ESC quit
+a quit
+A quit
+q quit
+Q quit
+backspace quit
+BACKSPACE quit
+GAMEPAD_ACTION_RIGHT quit
+GAMEPAD_BACK quit
+BTN_EAST quit
+BTN_B quit
+BTN_SELECT quit
+BTN_START cycle pause
+JOY_BTN1 quit
+JOY_B quit
+"""
+        else:
+            # Standard (Nintendo / TrimUI / Knulli / ArkOS: A=Play/Pause, B=Quit/Back)
+            play_bindings = """
+SPACE cycle pause
+ENTER cycle pause
+a cycle pause
+A cycle pause
+GAMEPAD_ACTION_RIGHT cycle pause
+BTN_EAST cycle pause
+BTN_B cycle pause
+JOY_BTN1 cycle pause
+JOY_B cycle pause
+"""
+            quit_bindings = """
+esc quit
+ESC quit
+b quit
+B quit
+q quit
+Q quit
+backspace quit
+BACKSPACE quit
+GAMEPAD_ACTION_DOWN quit
+GAMEPAD_BACK quit
+BTN_SOUTH quit
+BTN_A quit
+BTN_SELECT quit
+BTN_START cycle pause
+JOY_BTN0 quit
+JOY_A quit
+"""
+
+        return f"""# pr0-retroconsole mpv controls ({self.button_layout})
+# Seeking controls (10% jumps with visual OSD progress bar)
+RIGHT osd-msg-bar seek 10 relative-percent
+LEFT osd-msg-bar seek -10 relative-percent
+right osd-msg-bar seek 10 relative-percent
+left osd-msg-bar seek -10 relative-percent
+GAMEPAD_ACTION_RIGHT osd-msg-bar seek 10 relative-percent
+GAMEPAD_ACTION_LEFT osd-msg-bar seek -10 relative-percent
+BTN_DPAD_RIGHT osd-msg-bar seek 10 relative-percent
+BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
+
+# Playback controls
+{play_bindings.strip()}
+
+# Quit controls
+{quit_bindings.strip()}
+"""
+
     def _ensure_input_conf(self) -> Path:
-        """Ensure pr0_mpv_input.conf exists with custom keybindings."""
+        """Ensure pr0_mpv_input.conf exists with custom keybindings matching active layout."""
+        conf_content = self._generate_mpv_input_conf()
         candidates = [
             Path("./pr0_mpv_input.conf"),
             Path("/tmp/pr0_mpv_input.conf"),
@@ -671,13 +758,13 @@ class VideoPlayer:
         for p in candidates:
             try:
                 p.parent.mkdir(parents=True, exist_ok=True)
-                p.write_text(MPV_INPUT_CONF_CONTENT, encoding="utf-8")
+                p.write_text(conf_content, encoding="utf-8")
                 return p.resolve()
             except Exception as e:
                 logger.warning("Could not write mpv input conf to %s: %s", p, e)
 
         fallback = Path("./pr0_mpv_input.conf")
-        fallback.write_text(MPV_INPUT_CONF_CONTENT, encoding="utf-8")
+        fallback.write_text(conf_content, encoding="utf-8")
         return fallback.resolve()
 
     def play(self, media_url: str, width: int = 640, height: int = 480) -> bool:
@@ -836,25 +923,32 @@ class VideoPlayer:
         env = get_handheld_env(self.player_path)
         logger.info("Executing video player: %s", " ".join(cmd))
 
-        # Determine back button index based on active layout
-        back_btn = 0 if self.button_layout == "inverted" else 1
+        # Determine back button index and keys based on active layout
+        if self.button_layout == "inverted":
+            # Inverted: B = Play, A = Back
+            back_btn = 1
+            back_keys = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_a, pygame.K_ESCAPE, pygame.K_q)
+        else:
+            # Standard (Nintendo / TrimUI / Knulli / ArkOS): A = Play, B = Back
+            back_btn = 0
+            back_keys = (pygame.K_ESCAPE, pygame.K_b, pygame.K_q, pygame.K_BACKSPACE)
 
         try:
             # Run player and monitor for exit
             p = subprocess.Popen(cmd, env=env)
             while p.poll() is None:
-                # Pump pygame events to detect user exit requests (B / ESC)
+                # Pump pygame events to detect user exit requests
                 for ev in pygame.event.get():
                     if ev.type == pygame.QUIT:
                         p.terminate()
                         break
                     elif ev.type == pygame.KEYDOWN:
-                        if ev.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_q, pygame.K_BACKSPACE):
+                        if ev.key in back_keys:
                             logger.info("Video player exit requested via key %s", ev.key)
                             p.terminate()
                             break
                     elif ev.type == pygame.JOYBUTTONDOWN:
-                        # B button (back_btn) or Select/Back button (6, 8, 10)
+                        # Back button or Select/Back button (6, 8, 10)
                         if ev.button in (back_btn, 6, 8, 10):
                             logger.info("Video player exit requested via gamepad back button %s", ev.button)
                             p.terminate()

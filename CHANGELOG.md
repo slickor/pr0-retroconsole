@@ -7,6 +7,19 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.3] - 2026-10-21
+
+### Behoben
+- **Tastenbelegung in der Vollbild-Videoansicht (Knulli / TrimUI):**
+  - **A/B-Tastentausch in mpv behoben:** In mpv (`pr0_mpv_input.conf`) war `BTN_EAST` (auf Nintendo-/TrimUI-Handhelds die physische A-Taste) fälschlicherweise auf `quit` und `BTN_SOUTH` (physische B-Taste) auf `cycle pause` gemappt. Dadurch beendete A das Video und B pausierte.
+  - **Dynamische Tastenbelegung:** Sowohl `mpv` als auch der Event-Loop in Pygame generieren und interpretieren die Steuerbefehle nun exakt abgestimmt auf das in den Einstellungen gewählte Layout (Standard: A=Play/Pause, B=Beenden; Invertiert: B=Play/Pause, A=Beenden).
+- **Physische Display-Erkennung auf muOS (`driver=offscreen` Fix):**
+  - Auf Systemen, bei denen SDL ohne expliziten Treiber in den unsichtbaren `offscreen`-Modus verfällt, erkennt Pygame nun automatisch, dass kein physischer Bildschirm angesteuert wird.
+  - Automatische Suche nach echten Hardware-Backends (`kmsdrm`, `mali`, `fbcon`, `wayland`, `x11`) mit nativer Panel-Auflösung `(0, 0, FULLSCREEN)`.
+  - **Rechte & Pfade in `pr0-retroconsole.sh`:** Zugriffsberechtigungen für `/dev/dri/*` und `/dev/fb*` für Non-Root-User sowie PortMaster-Pfade für muOS (`/mnt/mmc/MUOS/PortMaster`, `/mnt/mmc/ports/PortMaster`, etc.) ergänzt.
+
+---
+
 ## [0.4.2] - 2026-10-21
 
 ### Behoben

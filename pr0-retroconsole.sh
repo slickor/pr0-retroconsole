@@ -14,6 +14,14 @@ elif [ -d "/roms/ports/PortMaster/" ]; then
   controlfolder="/roms/ports/PortMaster"
 elif [ -d "/ports/PortMaster/" ]; then
   controlfolder="/ports/PortMaster"
+elif [ -d "/mnt/mmc/MUOS/PortMaster/" ]; then
+  controlfolder="/mnt/mmc/MUOS/PortMaster"
+elif [ -d "/mnt/mmc/ports/PortMaster/" ]; then
+  controlfolder="/mnt/mmc/ports/PortMaster"
+elif [ -d "/mnt/sdcard/ports/PortMaster/" ]; then
+  controlfolder="/mnt/sdcard/ports/PortMaster"
+elif [ -d "/mnt/union/ports/PortMaster/" ]; then
+  controlfolder="/mnt/union/ports/PortMaster"
 else
   controlfolder="/roms/ports/PortMaster"
 fi
@@ -36,6 +44,10 @@ elif [ -d "/roms/ports/pr0-retroconsole" ]; then
   GAMEDIR="/roms/ports/pr0-retroconsole"
 elif [ -d "/ports/pr0-retroconsole" ]; then
   GAMEDIR="/ports/pr0-retroconsole"
+elif [ -d "/mnt/mmc/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/mnt/mmc/ports/pr0-retroconsole"
+elif [ -d "/mnt/union/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/mnt/union/ports/pr0-retroconsole"
 elif [ -d "/userdata/roms/ports/pr0-retroconsole" ]; then
   GAMEDIR="/userdata/roms/ports/pr0-retroconsole"
 elif [ -d "/mnt/SDCARD/Emus/PORTS/pr0-retroconsole" ]; then
@@ -49,11 +61,11 @@ cd "$GAMEDIR"
 # Log file for debugging on device
 exec > >(tee "$GAMEDIR/log.txt") 2>&1
 
-# Ensure uinput is writable for gamepads
+# Ensure uinput, DRM, and framebuffer are accessible
 if [ -n "$ESUDO" ]; then
-  $ESUDO chmod 666 /dev/uinput 2>/dev/null
+  $ESUDO chmod 666 /dev/uinput /dev/dri/* /dev/fb* 2>/dev/null
 else
-  chmod 666 /dev/uinput 2>/dev/null
+  chmod 666 /dev/uinput /dev/dri/* /dev/fb* 2>/dev/null
 fi
 
 export PYTHONUNBUFFERED=1
