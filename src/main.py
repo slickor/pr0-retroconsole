@@ -40,7 +40,9 @@ from input import (
     ACTION_SELECT,
     ACTION_BACK,
     ACTION_INFO,
+    ACTION_SETTINGS,
     ACTION_TOGGLE_MODE,
+    ACTION_SOLO_FLAG,
     ACTION_UPVOTE,
     ACTION_DOWNVOTE,
 )
@@ -200,9 +202,11 @@ class Pr0App:
         self.theme: str = str(self.config.get("theme", "pr0_dark"))
         self.accent: str = str(self.config.get("accent", "orange"))
         self.autoplay_video: bool = bool(self.config.get("autoplay_video", True))
+        self.images_only: bool = bool(self.config.get("images_only", False))
         self.scroll_speed: str = str(self.config.get("scroll_speed", "normal"))
         self.scroll_step: int = 45 if self.scroll_speed == "normal" else (85 if self.scroll_speed == "schnell" else 150)
         self.settings_idx: int = 0
+        self.last_api_item_id: int | None = None
 
         # Feedback & Toast
         self.toast_msg: str | None = None
@@ -323,7 +327,10 @@ class Pr0App:
             return
         self.is_fetching_feed = True
 
-        older_id = self.items[-1]["id"] if (append and self.items) else None
+        if not append:
+            self.last_api_item_id = None
+
+        older_id = self.last_api_item_id if (append and self.last_api_item_id) else (self.items[-1]["id"] if (append and self.items) else None)
 
         def do_fetch() -> dict[str, Any]:
             return self.api.get_items(
@@ -683,7 +690,7 @@ class Pr0App:
                         self.grid_scroll_row = 0
                         self.fetch_feed(append=False)
                 return
-            elif action == ACTION_TOGGLE_MODE:
+            elif action in (ACTION_SOLO_FLAG, ACTION_TOGGLE_MODE):
                 # Solo-Select flag with Y button (or toggle Neu/Beliebt)
                 target = header_items[self.header_idx]
                 flag_mask_map = {
@@ -711,7 +718,7 @@ class Pr0App:
                     self.grid_scroll_row = 0
                     self.fetch_feed(append=False)
                 return
-            elif action == ACTION_INFO:
+            elif action == ACTION_SETTINGS:
                 self.state = STATE_SETTINGS
                 self.settings_idx = 0
                 return
@@ -750,13 +757,13 @@ class Pr0App:
             self.fetch_post_info(item["id"])
             self._update_inline_video()
             return
-        elif action == ACTION_INFO:
-            # Open Settings & Color customization
+        elif action == ACTION_SETTINGS:
+            # Open Settings with START
             self.state = STATE_SETTINGS
             self.settings_idx = 0
             return
         elif action == ACTION_TOGGLE_MODE:
-            # Switch between Beliebt and Neu
+            # Switch between Beliebt and Neu (via L2 / R2)
             self.promoted = 0 if self.promoted == 1 else 1
             mode_name = "Neu" if self.promoted == 0 else "Beliebt"
             self.set_toast(f"Modus: {mode_name}", COLOR_ORANGE, duration=1.5)
@@ -873,7 +880,7 @@ class Pr0App:
             self.cast_vote(item["id"], 1)
         elif action == ACTION_DOWNVOTE:
             self.cast_vote(item["id"], -1)
-        elif action == ACTION_INFO:
+        elif action == ACTION_SETTINGS:
             self.inline_player.stop()
             self.state = STATE_SETTINGS
             self.settings_idx = 0
@@ -942,6 +949,14 @@ class Pr0App:
                 "display_value": ACCENTS.get(self.accent, {}).get("name", self.accent),
                 "options": accent_keys,
                 "swatch_color": ACCENTS.get(self.accent, {}).get("color"),
+            },
+            {
+                "id": "images_only",
+                "label": "Nur Bilder laden",
+                "type": "choice",
+                "value": self.images_only,
+                "display_value": "Aktiviert (Keine Videos)" if self.images_only else "Deaktiviert (Alle Medien)",
+                "options": [False, True],
             },
             {
                 "id": "autoplay_video",
@@ -1021,15 +1036,23 @@ class Pr0App:
                 "type": "action",
                 "display_value": "[B / A: Speichern & Zurück]",
             },
+            {
+                "id": "quit_app",
+                "label": "App beenden",
+                "type": "action",
+                "display_value": "[A: Beenden]",
+            },
         ]
 
     def _save_settings_and_return(self) -> None:
         """Persist current settings to config.json and return to grid."""
         old_flags = int(self.config.get("flags", 1))
         old_promoted = int(self.config.get("promoted", 1))
+        old_images_only = bool(self.config.get("images_only", False))
 
         self.config["theme"] = self.theme
         self.config["accent"] = self.accent
+        self.config["images_only"] = self.images_only
         self.config["autoplay_video"] = self.autoplay_video
         self.config["autoplay_audio"] = self.autoplay_audio
         self.config["promoted"] = self.promoted
@@ -1040,9 +1063,10 @@ class Pr0App:
         self.set_toast("Einstellungen gespeichert!", COLOR_GREEN, duration=2.0)
         self.state = STATE_GRID
 
-        # Reload feed if flags or promoted changed in settings
-        if old_flags != self.flags or old_promoted != self.promoted:
+        # Reload feed if flags, promoted or images_only changed in settings
+        if old_flags != self.flags or old_promoted != self.promoted or old_images_only != self.images_only:
             self.items = []
+            self.last_api_item_id = None
             self.selected_idx = 0
             self.grid_scroll_row = 0
             self.fetch_feed(append=False)
@@ -1076,6 +1100,8 @@ class Pr0App:
                 elif item_id == "accent":
                     self.accent = new_val
                     self.ui.set_theme(self.theme, self.accent)
+                elif item_id == "images_only":
+                    self.images_only = bool(new_val)
                 elif item_id == "autoplay_video":
                     self.autoplay_video = bool(new_val)
                 elif item_id == "autoplay_audio":
@@ -1131,6 +1157,19 @@ class Pr0App:
             elif item_id == "version_info":
                 self.set_toast(f"pr0-retroconsole v{VERSION}", COLOR_ORANGE, duration=2.0)
                 return
+            elif item_id == "quit_app":
+                self.config["theme"] = self.theme
+                self.config["accent"] = self.accent
+                self.config["images_only"] = self.images_only
+                self.config["autoplay_video"] = self.autoplay_video
+                self.config["autoplay_audio"] = self.autoplay_audio
+                self.config["promoted"] = self.promoted
+                self.config["flags"] = self.flags
+                self.config["scroll_speed"] = self.scroll_speed
+                self.config["button_layout"] = self.button_layout
+                save_config(self.config, self.config_path)
+                self.running = False
+                return
             elif curr_item.get("type") == "choice":
                 opts = curr_item["options"]
                 curr_val = curr_item["value"]
@@ -1144,6 +1183,8 @@ class Pr0App:
                 elif item_id == "accent":
                     self.accent = new_val
                     self.ui.set_theme(self.theme, self.accent)
+                elif item_id == "images_only":
+                    self.images_only = bool(new_val)
                 elif item_id == "autoplay_video":
                     self.autoplay_video = bool(new_val)
                 elif item_id == "autoplay_audio":
@@ -1164,8 +1205,8 @@ class Pr0App:
                     self.set_toast(f"Knöpfe: {disp}", COLOR_ORANGE, duration=1.5)
                 return
 
-        # Back (B)
-        if action == ACTION_BACK:
+        # Back (B) or START to save & close
+        if action in (ACTION_BACK, ACTION_SETTINGS):
             self._save_settings_and_return()
             return
 
@@ -1187,8 +1228,18 @@ class Pr0App:
             if status == "success":
                 result = task.get("result", {})
                 if task_type in ("feed_fresh", "feed_append"):
-                    new_items = result.get("items", [])
+                    raw_items = result.get("items", [])
                     self.at_end = result.get("atEnd", False)
+                    if raw_items:
+                        self.last_api_item_id = raw_items[-1]["id"]
+                    elif task_type == "feed_fresh":
+                        self.last_api_item_id = None
+
+                    if self.images_only:
+                        new_items = [it for it in raw_items if not Pr0API.is_video(it)]
+                    else:
+                        new_items = raw_items
+
                     if task_type == "feed_fresh":
                         self.items = new_items
                     else:
@@ -1198,7 +1249,7 @@ class Pr0App:
                             if it["id"] not in existing_ids:
                                 self.items.append(it)
                     self.is_fetching_feed = False
-                    logger.info("Feed updated: %d total items (atEnd=%s)", len(self.items), self.at_end)
+                    logger.info("Feed updated: %d total items (atEnd=%s, images_only=%s)", len(self.items), self.at_end, self.images_only)
                     # Trigger background thumbnail preload for upcoming items
                     self.cache.preload_items(self.items, count=len(self.items))
                 elif task_type == "post_info":
@@ -1256,7 +1307,7 @@ class Pr0App:
                     ("A", "An/Aus"),
                     ("Y", "Solo"),
                     ("Runter/B", "Grid"),
-                    ("X", "Setup"),
+                    ("START", "Setup"),
                 ]
             else:
                 footer_hints = [
@@ -1265,7 +1316,7 @@ class Pr0App:
                     ("A", "Öffnen"),
                     ("L1/R1", "Filter"),
                     ("L2/R2", "Modus"),
-                    ("X", "Setup"),
+                    ("START", "Setup"),
                 ]
             self.ui.render_footer(
                 hints=footer_hints,
@@ -1330,6 +1381,7 @@ class Pr0App:
                 ("R1/+", "+1"),
                 ("L1/-", "-1"),
                 ("B", "Grid"),
+                ("START", "Setup"),
             ])
 
             self.ui.render_footer(

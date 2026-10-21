@@ -1033,23 +1033,37 @@ class UIRenderer:
         self.draw_text(self.screen, self.font_small, ver_badge, self.color_accent, (self.width - vw - 14, 12))
 
         # Main settings list area
-        view_y_start = self.header_height + 10
-        view_y_end = self.height - self.footer_height - 6
-        content_w = min(580, self.width - 24)
+        view_y_start = self.header_height + int(8 * self.scale)
+        view_y_end = self.height - self.footer_height - int(6 * self.scale)
+        content_w = min(int(600 * self.scale), self.width - int(24 * self.scale))
         start_x = (self.width - content_w) // 2
 
-        row_h = int(32 * self.scale)
-        row_gap = int(5 * self.scale)
+        row_h = int(28 * self.scale)
+        row_gap = int(4 * self.scale)
+        item_step = row_h + row_gap
+
+        total_items = len(menu_items)
+        avail_h = view_y_end - view_y_start
+        max_visible = max(1, avail_h // item_step)
+
+        if total_items <= max_visible:
+            start_item = 0
+            visible_count = total_items
+        else:
+            half = max_visible // 2
+            start_item = max(0, min(selected_idx - half, total_items - max_visible))
+            visible_count = max_visible
 
         curr_y = view_y_start
-        for i, item in enumerate(menu_items):
+        for i in range(start_item, start_item + visible_count):
+            item = menu_items[i]
             is_selected = (i == selected_idx)
             row_rect = pygame.Rect(start_x, curr_y, content_w, row_h)
 
             bg_col = self.color_card if not is_selected else (
-                min(255, self.color_card[0] + 14),
-                min(255, self.color_card[1] + 14),
-                min(255, self.color_card[2] + 16),
+                min(255, self.color_card[0] + 16),
+                min(255, self.color_card[1] + 16),
+                min(255, self.color_card[2] + 20),
             )
             pygame.draw.rect(self.screen, bg_col, row_rect, border_radius=6)
             if is_selected:
@@ -1058,58 +1072,80 @@ class UIRenderer:
                 pygame.draw.rect(self.screen, self.color_card_border, row_rect, width=1, border_radius=6)
 
             # Left: Label
+            label_font = self.font_bold if is_selected else self.font_regular
             label_color = self.color_accent if is_selected else self.color_text
-            lx = start_x + 12
-            ly = curr_y + (row_h - self.font_regular.get_height()) // 2
-            self.draw_text(self.screen, self.font_bold if is_selected else self.font_regular, item["label"], label_color, (lx, ly))
+            lx = start_x + int(12 * self.scale)
+            ly = curr_y + (row_h - label_font.get_height()) // 2
+            self.draw_text(self.screen, label_font, item["label"], label_color, (lx, ly))
 
             # Right: Value display
             val_txt = str(item.get("display_value", item.get("value", "")))
+            val_font = self.font_bold if is_selected else self.font_small
+            pad_right = int(14 * self.scale)
+
             if item.get("type") in ("action", "info"):
                 val_color = self.color_accent if is_selected else self.color_text_dim
-                val_w = self.font_small.size(val_txt)[0]
-                vx = start_x + content_w - val_w - 14
-                vy = curr_y + (row_h - self.font_small.get_height()) // 2
-                self.draw_text(self.screen, self.font_bold if is_selected else self.font_small, val_txt, val_color, (vx, vy))
+                val_w = val_font.size(val_txt)[0]
+                vx = start_x + content_w - val_w - pad_right
+                vy = curr_y + (row_h - val_font.get_height()) // 2
+                self.draw_text(self.screen, val_font, val_txt, val_color, (vx, vy))
             else:
                 val_color = self.color_accent if is_selected else self.color_text
                 arrows_txt = f"◄  {val_txt}  ►" if is_selected else val_txt
-                vw = self.font_small.size(arrows_txt)[0]
-                vx = start_x + content_w - vw - 14
-                vy = curr_y + (row_h - self.font_small.get_height()) // 2
+                vw = val_font.size(arrows_txt)[0]
+                vx = start_x + content_w - vw - pad_right
+                vy = curr_y + (row_h - val_font.get_height()) // 2
 
                 # If theme or accent, draw small color swatch box
                 swatch_color = item.get("swatch_color")
                 if swatch_color:
-                    swatch_size = 14
-                    swatch_rect = pygame.Rect(vx - swatch_size - 8, curr_y + (row_h - swatch_size) // 2, swatch_size, swatch_size)
+                    swatch_size = int(14 * self.scale)
+                    swatch_rect = pygame.Rect(
+                        vx - swatch_size - int(8 * self.scale),
+                        curr_y + (row_h - swatch_size) // 2,
+                        swatch_size,
+                        swatch_size,
+                    )
                     pygame.draw.rect(self.screen, swatch_color, swatch_rect, border_radius=3)
                     pygame.draw.rect(self.screen, self.color_card_border, swatch_rect, width=1, border_radius=3)
 
-                self.draw_text(self.screen, self.font_bold if is_selected else self.font_small, arrows_txt, val_color, (vx, vy))
+                self.draw_text(self.screen, val_font, arrows_txt, val_color, (vx, vy))
 
-            curr_y += row_h + row_gap
+            curr_y += item_step
 
-        # Live Theme Preview Box below settings list
-        preview_h = min(68, view_y_end - curr_y - 4)
-        if preview_h > 32:
+        # Sleek vertical scrollbar if list overflows viewport
+        if total_items > max_visible:
+            sb_w = max(3, int(4 * self.scale))
+            sb_x = min(self.width - sb_w - 4, start_x + content_w + int(4 * self.scale))
+            sb_y = view_y_start
+            sb_h = visible_count * item_step - row_gap
+            thumb_h = max(int(24 * self.scale), int(sb_h * (visible_count / total_items)))
+            scrollable = sb_h - thumb_h
+            thumb_y = sb_y + int(scrollable * (start_item / (total_items - visible_count)))
+
+            pygame.draw.rect(self.screen, self.color_card, (sb_x, sb_y, sb_w, sb_h), border_radius=2)
+            pygame.draw.rect(self.screen, self.color_accent, (sb_x, thumb_y, sb_w, thumb_h), border_radius=2)
+
+        # Live Theme Preview Box below settings list (if space permits)
+        preview_h = min(int(64 * self.scale), view_y_end - curr_y - 4)
+        if total_items <= max_visible and preview_h > int(32 * self.scale):
             preview_rect = pygame.Rect(start_x, curr_y + 4, content_w, preview_h)
             pygame.draw.rect(self.screen, self.color_card, preview_rect, border_radius=6)
             pygame.draw.rect(self.screen, self.color_card_border, preview_rect, width=1, border_radius=6)
 
-            px = start_x + 12
-            py = curr_y + 8
+            px = start_x + int(12 * self.scale)
+            py = curr_y + int(8 * self.scale)
             self.draw_text(self.screen, self.font_small, "Live-Vorschau:", self.color_text_dim, (px, py))
 
             # Swatch badge
-            badge_rect = pygame.Rect(px, py + 18, 110, 22)
+            badge_rect = pygame.Rect(px, py + int(18 * self.scale), int(110 * self.scale), int(22 * self.scale))
             pygame.draw.rect(self.screen, self.color_accent, badge_rect, border_radius=4)
             bw = self.font_small.size("Akzentfarbe")[0]
-            self.draw_text(self.screen, self.font_small, "Akzentfarbe", self.color_text, (px + (110 - bw) // 2, py + 22))
+            self.draw_text(self.screen, self.font_small, "Akzentfarbe", self.color_text, (px + (badge_rect.width - bw) // 2, py + int(22 * self.scale)))
 
             # Sample items
-            self.draw_text(self.screen, self.font_small, "Benis: +1337", self.color_green, (px + 122, py + 22))
-            self.draw_text(self.screen, self.font_small, "#pr0gramm", self.color_tag_text, (px + 220, py + 22))
+            self.draw_text(self.screen, self.font_small, "Benis: +1337", self.color_green, (px + int(122 * self.scale), py + int(22 * self.scale)))
+            self.draw_text(self.screen, self.font_small, "#pr0gramm", self.color_tag_text, (px + int(220 * self.scale), py + int(22 * self.scale)))
 
         # Footer
         self.render_footer(
@@ -1117,7 +1153,7 @@ class UIRenderer:
                 ("▲/▼", "Auswahl"),
                 ("◄/►", "Ändern"),
                 ("A", "Aktion"),
-                ("B", "Speichern & Zurück"),
+                ("B/START", "Speichern & Zurück"),
             ],
             toast_message=toast_message,
             toast_color=toast_color,

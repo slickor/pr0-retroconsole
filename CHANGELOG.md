@@ -7,6 +7,29 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.10] - 2026-10-21
+
+### Hinzugefügt
+- **Bereinigte Tastenbelegung & START für Einstellungen:**
+  - `START` öffnet nun zuverlässig auf allen Handhelds und Controllern die Einstellungen (`BTN_START` auf Gamepads, `F1` via gptokeyb).
+  - Im Einstellungsmenü kann mit `START` oder `B` gespeichert und direkt zum Grid zurückgekehrt werden.
+  - Doppelte Belegung von `Y` im Grid entfernt: `Y` schaltet nicht mehr versehentlich zwischen "Neu" und "Beliebt" um (dies erfolgt nun sauber über `L2` / `R2` bzw. über die interaktive Header-Navigation). Im Header dient `Y` weiterhin der schnellen Solo-Flag-Auswahl.
+  - Taste `X` öffnet nicht mehr die Einstellungen.
+- **Neue Einstellung "Nur Bilder laden" (Videos ausblenden):**
+  - Neuer Umschalter in den Einstellungen: Schaltet wahlweise alle Medien frei oder filtert Videos (`.mp4`, `.webm`) vollständig aus.
+  - Ideal für Handhelds mit geringerer Rechenleistung oder zur Reduzierung des Datenverbrauchs unterwegs.
+- **Sauberes Beenden über "App beenden":**
+  - Neuer Menüpunkt "App beenden" in den Einstellungen sichert alle Anpassungen und beendet das Programm sauber, sodass man direkt ins Hauptmenü / PortMaster zurückkehrt.
+
+### Behoben
+- **Karten-Überhang in den Einstellungen behoben:**
+  - In der ausgewählten Zeile ragten die Einstellungsoptionen mit den Pfeilen (`◄ ... ►`) über den rechten Rand der Menü-Kachel hinaus, da die Breitenmessung mit der normalen Schrift erfolgte, der Text jedoch fett gerendert wurde.
+  - Messung und Textanzeige nutzen nun strikt dieselbe Schriftart und Skalierung; der rechte Sicherheitsabstand bleibt stets gewahrt.
+- **Viewport-Scrolling mit Scrollbar für Einstellungen:**
+  - Dynamisches vertikales Scrolling mit nativer Scrollbar stellt sicher, dass alle 16 Einstellungsoptionen auf allen Handheld-Auflösungen (480p, 720p) optimal erreichbar sind.
+
+---
+
 ## [0.3.9] - 2026-10-21
 
 ### Hinzugefügt

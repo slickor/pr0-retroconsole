@@ -62,12 +62,12 @@
 | **D-Pad Oben / Unten** | `▲` / `▼` | Zeilennavigation (**▲ in Zeile 0 öffnet Header**) | Durch Post & Kommentare scrollen | - |
 | **Rechter Analogstick** | `W` / `S` | Turbo-Scroll | Schnelles Scrollen im Kommentarbaum | - |
 | **A** | `Enter` / `Space` | Post öffnen (im Header: Filter togglen) | Video im Vollbild öffnen | Play / Pause |
-| **B** | `Esc` / `Backspace` / `Q` | App beenden (im Header: zurück zum Grid) | Zurück zum Raster | Vollbild beenden / Zurück |
+| **B** | `Esc` / `Backspace` / `Q` | Im Header: zurück zum Grid | Zurück zum Raster | Vollbild beenden / Zurück |
 | **L2 / R2** | `T` | **Beliebt 🔁 Neu** | **Beliebt 🔁 Neu** | - |
 | **R1** | `+` / `=` / `R` | Schnell-Filter vorwärts (SFW -> Nur NSFW -> ...) | Upvote (+1 Blussi) vergeben | - |
 | **L1** | `-` / `E` | Schnell-Filter rückwärts | Downvote (-1) vergeben | - |
-| **X** | `I` / `X` | Einstellungen & Farbschema | Einstellungen öffnen | - |
-| **Y** | `Tab` / `Y` | Beliebt 🔁 Neu (im Header: **Solo-Filter**) | - | - |
+| **START** | `F1` / `F2` / `P` | Einstellungen & Farbschema öffnen | Einstellungen öffnen | - |
+| **Y** | `Tab` / `Y` | Im Header: **Solo-Filter** (z.B. reines NSFW) | - | - |
 
 ---
 

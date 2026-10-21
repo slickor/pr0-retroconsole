@@ -29,8 +29,10 @@ ACTION_SCROLL_UP = "scroll_up"
 ACTION_SCROLL_DOWN = "scroll_down"
 ACTION_SELECT = "select"  # Bestätigen / Post öffnen
 ACTION_BACK = "back"      # Zurück / Abbrechen
-ACTION_INFO = "info"      # Einstellungen / Kommentare
-ACTION_TOGGLE_MODE = "toggle_mode"  # Beliebt vs Neu
+ACTION_INFO = "info"      # Info / Details
+ACTION_SETTINGS = "settings"  # Einstellungen (START)
+ACTION_TOGGLE_MODE = "toggle_mode"  # Beliebt vs Neu (L2/R2)
+ACTION_SOLO_FLAG = "solo_flag"  # Solo-Filter im Header (Y)
 ACTION_UPVOTE = "upvote"  # R1 / + / Blussi
 ACTION_DOWNVOTE = "downvote"  # L1 / - / Minus
 
@@ -177,13 +179,16 @@ class InputManager:
         elif key == pygame.K_t:
             return ACTION_TOGGLE_MODE, "L2/R2 (Beliebt / Neu)"
 
+        # START Button (Einstellungen)
+        elif key in (pygame.K_F1, pygame.K_F2, pygame.K_p):
+            return ACTION_SETTINGS, "START (Einstellungen)"
+
         # Face Buttons - Dependent on Button Layout
         # On PortMaster / gptokeyb with pr0.gptk:
         #   physical South sends K_RETURN
         #   physical East sends K_ESCAPE
         #   physical North sends K_TAB
         #   physical West sends K_i
-        # Face Buttons - Dependent on Button Layout
         # Standard: A = Enter, B = ESC, X = i/x, Y = Tab/y
         # Inverted: B = Enter, A = ESC, Y = i/x, X = Tab/y
         if self.button_layout == "inverted":
@@ -192,18 +197,18 @@ class InputManager:
             elif key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
                 return ACTION_BACK, "A (Zurück)"
             elif key in (pygame.K_TAB, pygame.K_y):
-                return ACTION_INFO, "Y (Info)"
+                return ACTION_SOLO_FLAG, "Y (Solo-Filter)"
             elif key in (pygame.K_i, pygame.K_x, pygame.K_c):
-                return ACTION_TOGGLE_MODE, "X (Modus)"
+                return ACTION_INFO, "X (Info)"
         else:
             if key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
                 return ACTION_SELECT, "A (Öffnen / Bestätigen)"
             elif key in (pygame.K_ESCAPE, pygame.K_BACKSPACE, pygame.K_q):
                 return ACTION_BACK, "B (Zurück)"
             elif key in (pygame.K_i, pygame.K_x, pygame.K_c):
-                return ACTION_INFO, "X (Setup / Farben)"
+                return ACTION_INFO, "X (Info)"
             elif key in (pygame.K_TAB, pygame.K_y):
-                return ACTION_TOGGLE_MODE, "Y (Beliebt / Neu)"
+                return ACTION_SOLO_FLAG, "Y (Solo-Filter)"
 
         return None, f"Key {key}"
 
@@ -249,9 +254,9 @@ class InputManager:
                 elif btn == BTN_A:  # 0
                     act, lbl = ACTION_BACK, "A (Zurück)"
                 elif btn == BTN_Y:  # 3
-                    act, lbl = ACTION_INFO, "Y (Info)"
+                    act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
                 elif btn == BTN_X:  # 2
-                    act, lbl = ACTION_TOGGLE_MODE, "X (Modus)"
+                    act, lbl = ACTION_INFO, "X (Info)"
             else:
                 # Standard
                 if btn == BTN_A:  # 0
@@ -259,9 +264,9 @@ class InputManager:
                 elif btn == BTN_B:  # 1
                     act, lbl = ACTION_BACK, "B (Zurück)"
                 elif btn == BTN_X:  # 2
-                    act, lbl = ACTION_INFO, "X (Setup / Farben)"
+                    act, lbl = ACTION_INFO, "X (Info)"
                 elif btn == BTN_Y:  # 3
-                    act, lbl = ACTION_TOGGLE_MODE, "Y (Beliebt / Neu)"
+                    act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
 
             if btn in (BTN_R1, 5):
                 act, lbl = ACTION_UPVOTE, "R1"
@@ -270,13 +275,13 @@ class InputManager:
             elif btn in (9, 10):
                 act, lbl = ACTION_TOGGLE_MODE, f"L2/R2 (Button {btn})"
             elif btn == BTN_START:
-                act, lbl = ACTION_SELECT, "START"
+                act, lbl = ACTION_SETTINGS, "START"
             elif btn == BTN_BACK:
                 act, lbl = ACTION_BACK, "SELECT"
 
             # When gptokeyb is active, face buttons/d-pad/start/back are handled by gptokeyb key strokes.
-            # Only shoulder buttons (L1/R1, L2/R2) are allowed as fallback here in case gptokeyb dropped them.
-            if self.is_gptokeyb_active and act not in (ACTION_UPVOTE, ACTION_DOWNVOTE, ACTION_TOGGLE_MODE):
+            # Only shoulder buttons (L1/R1, L2/R2) and START are allowed as fallback here in case gptokeyb dropped them.
+            if self.is_gptokeyb_active and act not in (ACTION_UPVOTE, ACTION_DOWNVOTE, ACTION_TOGGLE_MODE, ACTION_SETTINGS, ACTION_SOLO_FLAG):
                 return actions
 
             if act:
@@ -288,7 +293,7 @@ class InputManager:
         elif event.type == pygame.JOYBUTTONUP:
             btn = event.button
             # Clear held button
-            for act in (ACTION_SELECT, ACTION_BACK, ACTION_INFO, ACTION_TOGGLE_MODE, ACTION_UPVOTE, ACTION_DOWNVOTE):
+            for act in (ACTION_SELECT, ACTION_BACK, ACTION_INFO, ACTION_SETTINGS, ACTION_TOGGLE_MODE, ACTION_SOLO_FLAG, ACTION_UPVOTE, ACTION_DOWNVOTE):
                 self._held_actions.pop(act, None)
 
         # 5. D-Pad Hats
@@ -407,7 +412,7 @@ class InputManager:
                 self._last_action_times[act] = now
 
             # Button action debounce
-            elif act in (ACTION_SELECT, ACTION_BACK, ACTION_INFO, ACTION_TOGGLE_MODE, ACTION_UPVOTE, ACTION_DOWNVOTE):
+            elif act in (ACTION_SELECT, ACTION_BACK, ACTION_INFO, ACTION_SETTINGS, ACTION_TOGGLE_MODE, ACTION_SOLO_FLAG, ACTION_UPVOTE, ACTION_DOWNVOTE):
                 last = self._last_action_times.get(act, 0.0)
                 if now - last < 0.22:
                     continue
