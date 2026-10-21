@@ -307,7 +307,7 @@ class InlineVideoPlayer:
             self._proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
                 bufsize=frame_bytes * 2,
                 env=get_handheld_env(self.ffmpeg_bin),
             )
@@ -321,6 +321,14 @@ class InlineVideoPlayer:
             try:
                 raw = self._proc.stdout.read(frame_bytes)
                 if len(raw) < frame_bytes:
+                    err_msg = ""
+                    if self._proc and self._proc.stderr:
+                        try:
+                            err_msg = self._proc.stderr.read().decode("utf-8", errors="replace")
+                        except Exception:
+                            pass
+                    if err_msg.strip():
+                        logger.warning("Inline ffmpeg stream error: %s", err_msg.strip()[:250])
                     break
                 surf = pygame.image.frombuffer(raw, (width, height), "RGB")
                 with self._lock:
@@ -599,19 +607,41 @@ class VideoPlayer:
                     media_url,
                 ]
         elif self.player_type == "ffplay":
-            cmd = [
-                self.player_path,
-                "-x",
-                str(width),
-                "-y",
-                str(height),
-                "-loop",
-                "0",
-                "-autoexit=0",
-                "-window_title",
-                "pr0 video",
-                media_url,
-            ]
+            if self.is_handheld:
+                try:
+                    if pygame.mixer.get_init():
+                        pygame.mixer.quit()
+                except Exception:
+                    pass
+
+                cmd = [
+                    self.player_path,
+                    "-x",
+                    str(width),
+                    "-y",
+                    str(height),
+                    "-fs",
+                    "-noborder",
+                    "-loop",
+                    "0",
+                    "-loglevel",
+                    "error",
+                    media_url,
+                ]
+            else:
+                cmd = [
+                    self.player_path,
+                    "-x",
+                    str(width),
+                    "-y",
+                    str(height),
+                    "-noborder",
+                    "-loop",
+                    "0",
+                    "-window_title",
+                    "pr0 video",
+                    media_url,
+                ]
         elif self.player_type == "vlc":
             if self.is_handheld:
                 cmd = [

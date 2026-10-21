@@ -7,6 +7,17 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.12] - 2026-10-21
+
+### Behoben
+- **Kritischer Video-Crash mit `ffplay` auf Handhelds (z. B. R36S) behoben:**
+  - Laut Geräte-Log (`log.txt`) stürzte `ffplay` sofort mit Exit-Code 1 ab (`Failed to set value '-window_title' for option 'autoexit=0': Option not found`).
+  - Der ungültige Parameter `-autoexit=0` wurde entfernt (in `ffplay` ist `-autoexit` ein reines Boolean-Flag).
+  - Auf Handhelds startet `ffplay` nun sauber im echten Vollbildmodus (`-fs`, `-noborder`, `-loop 0`), sodass Videos auf dem R36S und anderen Linux-Handhelds ohne `mpv` direkt abgespielt werden.
+  - Fehlerausgaben des internen FFmpeg-Streamers werden nun für besseres Debugging im Log erfasst.
+
+---
+
 ## [0.3.11] - 2026-10-21
 
 ### Entfernt
