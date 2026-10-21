@@ -8,7 +8,7 @@
   <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.9-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.13-orange?style=for-the-badge" alt="Changelog"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
 </p>
 
@@ -29,17 +29,17 @@
 ## Highlights & Features
 
 - **Flüssiger Videosound & 60 FPS:**
-  - Videos laufen direkt in der Post-Vorschau synchron mit Ton.
-  - Vollbild-Wiedergabe via `mpv` auf Knopfdruck (`A`) mit Pause/Unpause und sauberem Beenden (`B`).
+  - Videos laufen direkt in der Beitragsansicht synchron mit Ton.
+  - Vollbild-Wiedergabe via `mpv` oder `ffplay` auf Knopfdruck (`A`) mit Pause/Weiter und sauberem Beenden (`B`).
   - Spezieller Software-Decoder-Modus (`--hwdec=no`) behebt den Allwinner-A133 DTS/PTS B-Frame-Ruckel-Bug auf dem TrimUI Smart Pro.
 - **Originalgetreuer pr0.app Look:**
   - Authentischer Web-Header mit Suchleiste, Benis-Punkten, Benutzernamen und korrekten Rang-Farben (*Schwuchtel, Neuschwuchtel, Altschwuchtel, Moderator, Admin*).
   - Integrierter Farbschema- und Akzent-Wechsler in den Einstellungen (*pr0 Dark, OLED Schwarz, Nord, Gruvbox, Retro Terminal*).
 - **Komfortable Handheld-Bedienung:**
   - Flüssiges D-Pad & Analog-Stick Scrolling mit dynamischer Beschleunigung.
-  - Umschaltung zwischen **Beliebt** und **Neu** blitzschnell über `L2` / `R2` (oder `Y`).
-  - Schneller Content-Filter-Wechsel (SFW, NSFW, NSFL, Alle) über `R1` / `L1`.
-  - Wählbares Button-Layout (Nintendo `A`/`B` vs. Xbox `B`/`A`).
+  - Umschaltung zwischen **Beliebt** und **Neu** blitzschnell über `L2` / `R2` (oder im Header).
+  - Schneller Content-Filter-Wechsel (`SFW` -> `Nur NSFW` -> `SFW+NSFW` -> `SFW+NSFW+NSFL` -> `Alle`) über `R1` / `L1`.
+  - Wählbares Button-Layout (Standard `A`/`B` vs. Invertiert `B`/`A`).
 - **QR-Code Express-Login:**
   - Kein manuelles Kopieren von Cookies auf die SD-Karte mehr nötig!
   - Handheld zeigt einen QR-Code an -> mit dem Smartphone scannen -> im Browser einloggen -> Handheld ist sofort angemeldet.
@@ -56,18 +56,58 @@
 
 ## Steuerung & Tastenbelegung
 
-| Handheld Button | PC / Tastatur | Grid-View | Post-View (inkl. Kommentare) | Vollbild-Video (`mpv`) |
-|---|---|---|---|---|
-| **D-Pad Links / Rechts** | `◄` / `►` | Thumbnail auswählen (im Header: Filter wählen) | Vorheriger / Nächster Post | - |
-| **D-Pad Oben / Unten** | `▲` / `▼` | Zeilennavigation (**▲ in Zeile 0 öffnet Header**) | Durch Post & Kommentare scrollen | - |
-| **Rechter Analogstick** | `W` / `S` | Turbo-Scroll | Schnelles Scrollen im Kommentarbaum | - |
-| **A** | `Enter` / `Space` | Post öffnen (im Header: Filter togglen) | Video im Vollbild öffnen | Play / Pause |
-| **B** | `Esc` / `Backspace` / `Q` | Im Header: zurück zum Grid | Zurück zum Raster | Vollbild beenden / Zurück |
-| **L2 / R2** | `T` | **Beliebt 🔁 Neu** | **Beliebt 🔁 Neu** | - |
-| **R1** | `+` / `=` / `R` | Schnell-Filter vorwärts (SFW -> Nur NSFW -> ...) | Upvote (+1 Blussi) vergeben | - |
-| **L1** | `-` / `E` | Schnell-Filter rückwärts | Downvote (-1) vergeben | - |
-| **START** | `F1` / `F2` / `P` | Einstellungen & Farbschema öffnen | Einstellungen öffnen | - |
-| **Y** | `Tab` / `Y` | Im Header: **Solo-Filter** (z.B. reines NSFW) | - | - |
+Die Bedienung ist komplett auf Gamepads optimiert und funktioniert auf Handhelds (via `gptokeyb`) sowie am PC identisch.
+
+### 🎮 Hauptnavigation (Raster, Header & Beitragsansicht)
+
+| Taste (Handheld) | PC / Tastatur | Kachelgitter (Grid-View) | Header-Filterleiste (▲ in Zeile 0) | Beitragsansicht (Post & Kommentare) | Vollbild-Player (`mpv`/`ffplay`) |
+|---|---|---|---|---|---|
+| **D-Pad ◄ / ►** | `◄` / `►` | Kachel auswählen | Modus / Flag wählen (`neu`, `sfw`, `nsfw` ...) | Vorheriger / Nächster Post | 10s Vor- / Zurückspulen |
+| **D-Pad ▲ / ▼** | `▲` / `▼` | Zeilen wechseln (**▲ in Zeile 0 öffnet Header**) | **▼ kehrt ins Grid zurück** | Kontinuierlich scrollen (Bild ➔ Tags ➔ Kommentare) | - |
+| **Rechter Stick ▲ / ▼** | `W` / `S` | Turbo-Scrollen im Raster | - | Turbo-Scrollen im Kommentarbaum | Lautstärke |
+| **A** | `Enter` / `Leertaste` | Post öffnen | Gewähltes Flag an- / abwählen (Einzelschaltung) | Vollbild-Video öffnen | Pause / Weiter |
+| **B** | `Esc` / `Backspace` / `Q` | App beenden (mit Bestätigung) | Zurück ins Kachelgitter | Zurück zum Kachelgitter | Vollbild beenden / Zurück |
+| **START** | `F1` / `F2` / `P` | **Einstellungen öffnen** | **Einstellungen öffnen** | **Einstellungen öffnen** | - |
+| **Y** | `Tab` / `Y` | - | **Solo-Filter** (ausschließlich gewähltes Flag aktivieren) | - | - |
+| **L2 / R2** | `T` | **Beliebt 🔁 Neu** | Modus umschalten | - | - |
+| **R1** | `+` / `=` / `R` | Schnell-Filter vorwärts (`SFW` ➔ `Nur NSFW` ➔ `SFW+NSFW` ...) | - | Upvote (**+1 Blussi**) vergeben | - |
+| **L1** | `-` / `E` | Schnell-Filter rückwärts | - | Downvote (**-1**) vergeben | - |
+
+---
+
+### ⚙️ Einstellungsmenü (`START`)
+
+Im Einstellungsmenü können alle Optionen direkt per Gamepad konfiguriert werden:
+
+| Taste | Funktion |
+|---|---|
+| **D-Pad ▲ / ▼** | Option auswählen |
+| **D-Pad ◄ / ►** | Wert durchschalten (*Farbschema, Akzentfarbe, Nur Bilder laden, Autoplay, Filter, Tempo, etc.*) |
+| **A** | Aktion ausführen (*pr0gramm Account an/abmelden, Tasten-Test, Cache leeren, App beenden*) |
+| **B** oder **START** | Einstellungen speichern & zurück zum Kachelgitter |
+
+---
+
+### ⌨️ Bildschirmtastatur (Direkt-Login)
+
+Beim Direkteingabe-Login auf dem Handheld steht eine virtuelle Tastatur bereit:
+
+| Taste | Funktion |
+|---|---|
+| **D-Pad** | Tastaturcursor bewegen |
+| **A** | Markiertes Zeichen eingeben |
+| **X** | `[SHIFT]` (Groß- / Kleinschreibung umschalten) |
+| **Y** | `[DEL]` (Letztes Zeichen löschen) |
+| **START** | `[FERTIG]` (Eingabe bestätigen & anmelden) |
+| **B** | Abbrechen & zurück zur QR-Code-Ansicht |
+
+---
+
+### 🔄 Knopfbelegung (Standard vs. Invertiert)
+
+In den Einstellungen kann unter **Knopfbelegung** jederzeit zwischen zwei Modi gewechselt werden:
+- **Standard (Xbox / PC-Stil):** `A` = Öffnen / Bestätigen, `B` = Zurück / Abbrechen
+- **Invertiert (Nintendo / RetroArch-Stil):** `B` = Öffnen / Bestätigen, `A` = Zurück / Abbrechen
 
 ---
 
@@ -111,11 +151,11 @@ Wenn eine neue Version von **pr0-retroconsole** erscheint, musst du **keine Neue
 Für Upvotes/Downvotes sowie NSFW-/NSFL-Inhalte stehen drei bequeme Anmeldemethoden zur Verfügung:
 
 1. **Smartphone-Companion (Empfohlen):**
-   * Im Menü (`X`) auf **pr0gramm Account** drücken (`A`).
+   * Im Einstellungsmenü (`START`) auf **pr0gramm Account** drücken (`A`).
    * Den angezeigten QR-Code mit der Smartphone-Kamera scannen (Handy und Handheld im selben WLAN).
    * Im mobilen Browser Benutzername, Passwort und Captcha eingeben – der Handheld loggt sich automatisch ein!
 2. **Direkt auf dem Handheld:**
-   * Im Anmelde-Bildschirm `X` drücken, um auf direkte Eingabe umzuschalten.
+   * Im Anmelde-Bildschirm `X` drücken, um zwischen QR-Code und direkter Eingabe umzuschalten.
    * Mit dem integrierten virtuellen On-Screen-Keyboard Zugangsdaten und Captcha eingeben.
 3. **Manuell per `config.json`:**
    * Bestehenden `me`-Cookie-Wert aus dem Desktop-Browser direkt in `config.json` unter `"me_cookie"` einfügen.
