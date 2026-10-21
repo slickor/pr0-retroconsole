@@ -1,7 +1,7 @@
 # pr0-retroconsole
 
 <p align="center">
-  <img src="docs/images/pr0-presentation-banner.png" alt="pr0-retroconsole Banner" width="100%">
+  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-banner.png?v=0.4.2" alt="pr0-retroconsole Banner" width="100%">
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 <summary>📱 <b>Infografik & Feature-Poster ansehen (Klicken zum Ausklappen)</b></summary>
 <br>
 <p align="center">
-  <img src="docs/images/pr0-presentation-poster.png" alt="pr0-retroconsole Infografik-Poster" width="850">
+  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-poster.png?v=0.4.2" alt="pr0-retroconsole Infografik-Poster" width="850">
 </p>
 </details>
 
