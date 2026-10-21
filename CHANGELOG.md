@@ -7,6 +7,16 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.2] - 2026-10-21
+
+### Behoben
+- **Display-Initialisierung auf muOS / TrimUI (`pygame.error: kmsdrm not available`):**
+  - **Entfernung von forciertem `SDL_VIDEODRIVER=kmsdrm` in `pr0-retroconsole.sh`:** Auf TrimUI und muOS verwendet SDL standardmäßig den nativen OS-Grafiktreiber; das Erzwingen von `kmsdrm` schlug fehl, da die pip-Pygame-Binaries nicht gegen KMSDRM gelinkt sind bzw. muOS andere Video-Backends nutzt.
+  - **Automatischer Driver-Fallback in Pygame:** Sollte ein in der Systemumgebung gesetzter `SDL_VIDEODRIVER` fehlschlagen, wird die Variable im Fehlerfall automatisch entfernt, das Pygame-Display-Subsystem reinitialisiert und auf den Standard-Treiber zurückgegriffen.
+  - **Stufenweises Fallback bei Display-Modi:** Bei Fehlern mit `DOUBLEBUF` oder `FULLSCREEN` wird automatisch ein sicherer Fallback-Modus gewählt, damit die App in jedem Fall startet.
+
+---
+
 ## [0.4.1] - 2026-10-21
 
 ### Behoben

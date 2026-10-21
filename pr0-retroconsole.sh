@@ -84,13 +84,6 @@ export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 export SDL_VIDEO_DOUBLE_BUFFER=1
 export SDL_KMSDRM_DOUBLE_BUFFER=1
 
-# Ensure proper video driver on muOS / TrimUI / KMSDRM handhelds
-if [ -z "$SDL_VIDEODRIVER" ]; then
-  if [ -e "/dev/dri/card0" ]; then
-    export SDL_VIDEODRIVER=kmsdrm
-  fi
-fi
-
 echo "Starting pr0-retroconsole..."
 python3 src/main.py --config config.json
 

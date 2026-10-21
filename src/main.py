@@ -299,7 +299,20 @@ class Pr0App:
             except Exception as e:
                 logger.warning("Could not set display mode (%d, %d, flags=%d): %s, fallback to default",
                                self.width, self.height, flags, e)
-                self.screen = pygame.display.set_mode((self.width, self.height))
+                # If a specific driver like kmsdrm failed, remove from env and re-init display subsystem
+                if "SDL_VIDEODRIVER" in os.environ:
+                    driver_val = os.environ.pop("SDL_VIDEODRIVER", None)
+                    logger.warning("Removed forced SDL_VIDEODRIVER=%s, reinitializing pygame display...", driver_val)
+                    try:
+                        pygame.display.quit()
+                        pygame.display.init()
+                    except Exception:
+                        pass
+                try:
+                    self.screen = pygame.display.set_mode((self.width, self.height), pygame.FULLSCREEN if self.fullscreen else 0)
+                except Exception as e2:
+                    logger.warning("Fallback with flags failed (%s), trying basic set_mode...", e2)
+                    self.screen = pygame.display.set_mode((self.width, self.height))
 
         # Query actual surface dimensions in case SDL adapted to physical display
         real_w, real_h = self.screen.get_size()
