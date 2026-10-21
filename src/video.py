@@ -18,11 +18,32 @@ import time
 from pathlib import Path
 import pygame
 
+import struct
+
 logger = logging.getLogger("pr0.video")
 
 # Keybindings for mpv input configuration
 MPV_INPUT_CONF_CONTENT = """# pr0-retroconsole mpv controls
-# Keyboard & gptokeyb keys
+# Seeking controls (10% jumps with visual OSD progress bar)
+RIGHT osd-msg-bar seek 10 relative-percent
+LEFT osd-msg-bar seek -10 relative-percent
+right osd-msg-bar seek 10 relative-percent
+left osd-msg-bar seek -10 relative-percent
+GAMEPAD_ACTION_RIGHT osd-msg-bar seek 10 relative-percent
+GAMEPAD_ACTION_LEFT osd-msg-bar seek -10 relative-percent
+BTN_DPAD_RIGHT osd-msg-bar seek 10 relative-percent
+BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
+
+# Playback controls
+SPACE cycle pause
+ENTER cycle pause
+a cycle pause
+A cycle pause
+GAMEPAD_ACTION_DOWN cycle pause
+BTN_A cycle pause
+BTN_SOUTH cycle pause
+
+# Quit controls
 b quit
 B quit
 esc quit
@@ -31,29 +52,85 @@ q quit
 Q quit
 backspace quit
 BACKSPACE quit
-
-# Playback controls
-SPACE cycle pause
-ENTER cycle pause
-a cycle pause
-A cycle pause
-
-# Gamepad buttons (mpv SDL2 / Gamepad API)
-GAMEPAD_ACTION_RIGHT quit
-GAMEPAD_ACTION_DOWN cycle pause
 GAMEPAD_BACK quit
-GAMEPAD_START cycle pause
-
-# Linux evdev button names
-BTN_EAST quit
-BTN_SOUTH cycle pause
 BTN_B quit
-BTN_A cycle pause
+BTN_EAST quit
 BTN_SELECT quit
 BTN_START cycle pause
 JOY_BTN1 quit
 JOY_B quit
 """
+
+_DURATION_CACHE: dict[str, float] = {}
+
+
+def parse_mp4_duration(data: bytes) -> float | None:
+    """Extract duration in seconds from MP4 mvhd atom in raw bytes."""
+    idx = data.find(b"mvhd")
+    if idx != -1 and len(data) >= idx + 36:
+        version = data[idx + 4]
+        if version == 0:
+            timescale, duration = struct.unpack(">II", data[idx + 16 : idx + 24])
+            if timescale > 0:
+                return duration / timescale
+        elif version == 1:
+            timescale = struct.unpack(">I", data[idx + 24 : idx + 28])[0]
+            duration = struct.unpack(">Q", data[idx + 28 : idx + 36])[0]
+            if timescale > 0:
+                return duration / timescale
+    return None
+
+
+def parse_webm_duration(data: bytes) -> float | None:
+    """Extract duration in seconds from WebM Segment Info Duration element."""
+    idx = data.find(b"\x44\x89")
+    if idx != -1 and len(data) >= idx + 10:
+        size = data[idx + 2]
+        if size == 4:
+            return struct.unpack(">f", data[idx + 3 : idx + 7])[0] / 1000.0
+        elif size == 8:
+            return struct.unpack(">d", data[idx + 3 : idx + 11])[0] / 1000.0
+    return None
+
+
+def get_video_duration(url: str, cookie_header: str | None = None) -> float:
+    """Determine video duration in seconds with caching and low latency."""
+    if not url:
+        return 0.0
+
+    if url in _DURATION_CACHE:
+        return _DURATION_CACHE[url]
+
+    # 1. Check local file on disk
+    if os.path.isfile(url):
+        try:
+            with open(url, "rb") as f:
+                head = f.read(131072)
+            d = parse_mp4_duration(head) or parse_webm_duration(head)
+            if d and d > 0:
+                _DURATION_CACHE[url] = round(d, 2)
+                return _DURATION_CACHE[url]
+        except Exception:
+            pass
+
+    # 2. Remote HTTP URL (Range request for first 64KB)
+    if url.startswith("http"):
+        try:
+            import requests
+
+            headers = {"Range": "bytes=0-65535"}
+            if cookie_header:
+                headers["Cookie"] = cookie_header
+            resp = requests.get(url, headers=headers, timeout=2.0)
+            if resp.status_code in (200, 206) and resp.content:
+                d = parse_mp4_duration(resp.content) or parse_webm_duration(resp.content)
+                if d and d > 0:
+                    _DURATION_CACHE[url] = round(d, 2)
+                    return _DURATION_CACHE[url]
+        except Exception:
+            pass
+
+    return 0.0
 
 
 
@@ -132,6 +209,8 @@ class InlineVideoPlayer:
         self._current_frame: pygame.Surface | None = None
         self._lock = threading.Lock()
         self._active_url: str | None = None
+        self._duration: float = 0.0
+        self._start_time: float = 0.0
 
     def set_cookie(self, me_cookie: str | None, av_cookie: str | None = None) -> None:
         """Update authentication and age-verification cookies for media streaming."""
@@ -298,6 +377,8 @@ class InlineVideoPlayer:
 
         self._active_url = url
         self._running = True
+        self._start_time = time.time()
+        self._duration = get_video_duration(url, build_cookie_header(self.me_cookie, self.av_cookie))
 
         # Start audio companion
         if self.enable_audio:
@@ -386,6 +467,13 @@ class InlineVideoPlayer:
         """Thread-safe retrieval of latest video frame."""
         with self._lock:
             return self._current_frame
+
+    def get_progress(self) -> float:
+        """Returns playback progress as a float between 0.0 and 1.0."""
+        if not self._running or self._duration <= 0:
+            return 0.0
+        elapsed = (time.time() - self._start_time) % self._duration
+        return min(1.0, max(0.0, elapsed / self._duration))
 
     def stop(self) -> None:
         """Terminate the active stream and audio companion."""
@@ -606,6 +694,8 @@ class VideoPlayer:
 
         cmd: list[str] = []
         cookie_hdr = build_cookie_header(self.me_cookie, self.av_cookie)
+        duration = get_video_duration(media_url, cookie_hdr)
+        seek_step = max(0.5, round(duration * 0.1, 2)) if duration > 0 else 2.0
 
         if self.player_type == "mpv":
             conf_arg = f"--input-conf={self.input_conf_path}"
@@ -619,10 +709,6 @@ class VideoPlayer:
                     pass
 
                 # Fullscreen software-decoded playback for TrimUI Smart Pro, R36S, ArkOS
-                # NOTE: --hwdec=no is required on TrimUI / Allwinner A133.
-                # Allwinner's V4L2 cedrus decoder has a hardware bug where B-frames are output
-                # in decode order (DTS) instead of presentation order (PTS), causing video to jump back and forth!
-                # Software decoding on the quad-core Cortex-A53 easily runs 720p/1080p at 60 FPS smoothly.
                 cmd = [
                     self.player_path,
                     "--fs",
@@ -638,6 +724,13 @@ class VideoPlayer:
                     "--input-terminal=yes",
                     "--input-gamepad=yes",
                     "--really-quiet",
+                    "--osd-level=1",
+                    "--osd-bar=yes",
+                    "--osd-on-seek=bar",
+                    "--osd-duration=1500",
+                    "--osd-bar-align-y=1",
+                    "--osd-bar-h=1.5",
+                    "--osd-color=#EE4D2D",
                     conf_arg,
                 ]
                 if cookie_hdr and media_url.startswith("http"):
@@ -653,6 +746,13 @@ class VideoPlayer:
                     "--input-terminal=yes",
                     "--input-gamepad=yes",
                     "--really-quiet",
+                    "--osd-level=1",
+                    "--osd-bar=yes",
+                    "--osd-on-seek=bar",
+                    "--osd-duration=1500",
+                    "--osd-bar-align-y=1",
+                    "--osd-bar-h=1.5",
+                    "--osd-color=#EE4D2D",
                     conf_arg,
                 ]
                 if cookie_hdr and media_url.startswith("http"):
@@ -678,7 +778,15 @@ class VideoPlayer:
                     "0",
                     "-loglevel",
                     "error",
+                    "-seek_interval",
+                    str(seek_step),
                 ]
+                if duration > 0:
+                    vf_filter = (
+                        f"drawbox=x=0:y=ih-6:w=iw:h=6:color=black@0.6:t=fill,"
+                        f"drawbox=x=0:y=ih-6:w=iw*min(1\\,max(0\\,t/{duration:.2f})):h=6:color=0xEE4D2D:t=fill"
+                    )
+                    cmd.extend(["-vf", vf_filter])
                 if cookie_hdr and media_url.startswith("http"):
                     cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
                 cmd.append(media_url)
@@ -694,7 +802,15 @@ class VideoPlayer:
                     "0",
                     "-window_title",
                     "pr0 video",
+                    "-seek_interval",
+                    str(seek_step),
                 ]
+                if duration > 0:
+                    vf_filter = (
+                        f"drawbox=x=0:y=ih-6:w=iw:h=6:color=black@0.6:t=fill,"
+                        f"drawbox=x=0:y=ih-6:w=iw*min(1\\,max(0\\,t/{duration:.2f})):h=6:color=0xEE4D2D:t=fill"
+                    )
+                    cmd.extend(["-vf", vf_filter])
                 if cookie_hdr and media_url.startswith("http"):
                     cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
                 cmd.append(media_url)

@@ -7,6 +7,18 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.16] - 2026-10-21
+
+### Hinzugefügt
+- **Video-Fortschrittsbalken in Inline- und Vollbildansicht:**
+  - **Inline-Ansicht (Kommentaransicht):** Am unteren Rand des abgespielten Videos wird nun ein schlanker, akzentfarbener Fortschrittsbalken (z. B. pr0-Orange) in Echtzeit gerendert, der die genaue Abspielposition anzeigt.
+  - **Vollbildansicht (`ffplay` / `mpv`):** Ein visueller Fortschrittsbalken wird im Vollbildmodus am unteren Bildschirmrand eingeblendet.
+- **Relatives 10%-Springen mit den Pfeiltasten (Links / Rechts):**
+  - Anstelle eines starren 10-Sekunden-Sprungs ermittelt die App nun die exakte Gesamtlänge des Videos (per MP4/WebM-Headeranalyse).
+  - Beim Drücken der Pfeiltasten Links/Rechts (oder des D-Pads) springt der Player nun exakt **10 % der Gesamtlänge** des Videos vor oder zurück.
+
+---
+
 ## [0.3.15] - 2026-10-21
 
 ### Behoben

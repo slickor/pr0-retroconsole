@@ -760,6 +760,7 @@ class UIRenderer:
         video_player_available: bool = True,
         is_loading_info: bool = False,
         inline_frame: pygame.Surface | None = None,
+        inline_progress: float | None = None,
     ) -> int:
         """Render single post view with media at top and comments directly underneath.
 
@@ -813,6 +814,17 @@ class UIRenderer:
                 draw_x = (viewport_w - target_w) // 2
                 if curr_y + target_h >= view_y_start and curr_y <= view_y_end:
                     self.screen.blit(scaled_surf, (draw_x, curr_y))
+
+                    # Sleek animated progress bar at the bottom edge of the video
+                    if inline_progress is not None and inline_progress > 0.0:
+                        bar_h = 4
+                        bar_y = curr_y + target_h - bar_h
+                        bg_rect = pygame.Rect(draw_x, bar_y, target_w, bar_h)
+                        pygame.draw.rect(self.screen, (20, 20, 20), bg_rect)
+                        fill_w = int(target_w * max(0.0, min(1.0, inline_progress)))
+                        if fill_w > 0:
+                            fill_rect = pygame.Rect(draw_x, bar_y, fill_w, bar_h)
+                            pygame.draw.rect(self.screen, self.color_accent, fill_rect)
 
                 curr_y += target_h + 14
             else:

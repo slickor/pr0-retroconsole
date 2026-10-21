@@ -1390,6 +1390,7 @@ class Pr0App:
                 video_player_available=self.video.has_player(),
                 is_loading_info=self.is_loading_info,
                 inline_frame=self.inline_player.get_current_frame(),
+                inline_progress=self.inline_player.get_progress(),
             )
 
             self.ui.render_header(
