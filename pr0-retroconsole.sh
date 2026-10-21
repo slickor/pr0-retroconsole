@@ -81,6 +81,8 @@ if [ -n "$GPTOKEYB" ] && [ -f "$controlfolder/gptokeyb" ]; then
 fi
 
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+export SDL_VIDEO_DOUBLE_BUFFER=1
+export SDL_KMSDRM_DOUBLE_BUFFER=1
 
 echo "Starting pr0-retroconsole..."
 python3 src/main.py --config config.json

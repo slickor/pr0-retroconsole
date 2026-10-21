@@ -814,26 +814,6 @@ class UIRenderer:
                 if curr_y + target_h >= view_y_start and curr_y <= view_y_end:
                     self.screen.blit(scaled_surf, (draw_x, curr_y))
 
-                # Video status badge (Subtle top-right corner indicator, NO flashing center box)
-                if inline_frame is not None:
-                    badge_txt = "A: Vollbild"
-                    badge_color = self.color_text
-                elif video_player_available:
-                    badge_txt = "A: Vollbild"
-                    badge_color = self.color_text
-                else:
-                    badge_txt = "Kein Player (mpv fehlt)"
-                    badge_color = self.color_red
-
-                bw, bh = self.font_small.size(badge_txt)
-                badge_w = bw + int(16 * self.scale)
-                badge_h = max(bh + int(6 * self.scale), int(22 * self.scale))
-                bx = draw_x + target_w - badge_w - 8
-                by = curr_y + 8
-                pygame.draw.rect(self.screen, (18, 18, 22), (bx, by, badge_w, badge_h), border_radius=4)
-                pygame.draw.rect(self.screen, self.color_card_border, (bx, by, badge_w, badge_h), width=1, border_radius=4)
-                self.draw_text(self.screen, self.font_small, badge_txt, badge_color, (bx + int(8 * self.scale), by + (badge_h - bh) // 2))
-
                 curr_y += target_h + 14
             else:
                 # Image display: 'Tapeten' expand vertically; normal images fit first screen

@@ -50,7 +50,8 @@ def ensure_unix_lf(file_path: Path) -> None:
 
 
 def build_release(output_dir: Path | None = None) -> tuple[Path, Path]:
-    out_dir = output_dir or PROJECT_ROOT
+    out_dir = output_dir or (PROJECT_ROOT / "release")
+    out_dir.mkdir(parents=True, exist_ok=True)
     dist_dir = PROJECT_ROOT / "dist"
     staging_dir = dist_dir / "staging"
     staging_app = staging_dir / "pr0-retroconsole"

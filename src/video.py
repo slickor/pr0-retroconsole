@@ -96,10 +96,12 @@ class InlineVideoPlayer:
         preferred_ffmpeg: str | None = None,
         video_player: VideoPlayer | None = None,
         enable_audio: bool = True,
+        me_cookie: str | None = None,
     ):
         self.preferred_ffmpeg = preferred_ffmpeg
         self.video_player = video_player
         self.enable_audio = enable_audio
+        self.me_cookie = me_cookie
         self.system = platform.system()
         self.ffmpeg_bin = self._find_ffmpeg()
 
@@ -110,6 +112,10 @@ class InlineVideoPlayer:
         self._current_frame: pygame.Surface | None = None
         self._lock = threading.Lock()
         self._active_url: str | None = None
+
+    def set_cookie(self, me_cookie: str | None) -> None:
+        """Update authentication cookie for media streaming."""
+        self.me_cookie = me_cookie
 
         logger.info(
             "InlineVideoPlayer init: ffmpeg=%s, audio_enabled=%s",
@@ -201,6 +207,8 @@ class InlineVideoPlayer:
             ]
             if player.is_handheld:
                 cmd.extend(["--ao=alsa,oss,sdl"])
+            if self.me_cookie and url.startswith("http"):
+                cmd.extend([f"--http-header-fields=Cookie: me={self.me_cookie}"])
             cmd.append(url)
         elif player.player_type == "ffplay":
             cmd = [
@@ -208,8 +216,10 @@ class InlineVideoPlayer:
                 "-nodisp",
                 "-loop", "0",
                 "-loglevel", "quiet",
-                url,
             ]
+            if self.me_cookie and url.startswith("http"):
+                cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+            cmd.append(url)
         elif player.player_type == "vlc":
             cmd = [
                 player.player_path,
@@ -283,12 +293,13 @@ class InlineVideoPlayer:
         is_local = os.path.isfile(url)
         cmd = [
             self.ffmpeg_bin,
-            "-loglevel", "quiet",
+            "-loglevel", "error",
         ]
+        if self.me_cookie and url.startswith("http"):
+            cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+
         if is_local:
             cmd.extend(["-re", "-stream_loop", "-1"])
-        else:
-            cmd.extend(["-stream_loop", "-1"])
 
         cmd.extend([
             "-i", url,
@@ -374,9 +385,15 @@ class InlineVideoPlayer:
 class VideoPlayer:
     """Handles external video playback using mpv, ffplay, or vlc with graceful fallbacks."""
 
-    def __init__(self, preferred_player: str | None = None, button_layout: str = "standard"):
+    def __init__(
+        self,
+        preferred_player: str | None = None,
+        button_layout: str = "standard",
+        me_cookie: str | None = None,
+    ):
         self.preferred_player = preferred_player
         self.button_layout = button_layout
+        self.me_cookie = me_cookie
         self.system = platform.system()
         self.machine = platform.machine().lower()
 
@@ -386,6 +403,10 @@ class VideoPlayer:
         self._resolve_player()
 
         self.input_conf_path = self._ensure_input_conf()
+
+    def set_cookie(self, me_cookie: str | None) -> None:
+        """Update authentication cookie."""
+        self.me_cookie = me_cookie
 
         logger.info(
             "VideoPlayer init: system=%s, machine=%s, is_handheld=%s, type=%s, path=%s",
@@ -626,8 +647,10 @@ class VideoPlayer:
                     "0",
                     "-loglevel",
                     "error",
-                    media_url,
                 ]
+                if self.me_cookie and media_url.startswith("http"):
+                    cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+                cmd.append(media_url)
             else:
                 cmd = [
                     self.player_path,
@@ -640,8 +663,10 @@ class VideoPlayer:
                     "0",
                     "-window_title",
                     "pr0 video",
-                    media_url,
                 ]
+                if self.me_cookie and media_url.startswith("http"):
+                    cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+                cmd.append(media_url)
         elif self.player_type == "vlc":
             if self.is_handheld:
                 cmd = [
@@ -704,5 +729,13 @@ class VideoPlayer:
             # do not bleed into Pygame's post view
             time.sleep(0.2)
             pygame.event.clear()
+
+            # On Linux handhelds (ArkOS / KMSDRM), re-assert display mode to restore DRM CRTC
+            # and prevent -16 (EBUSY) pageflip lockups after child player exits
+            if self.is_handheld and self.system == "Linux":
+                try:
+                    pygame.display.set_mode((width, height))
+                except Exception as e:
+                    logger.debug("Failed to re-sync display mode: %s", e)
 
         return True

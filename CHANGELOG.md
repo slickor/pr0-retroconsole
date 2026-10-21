@@ -7,6 +7,25 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.13] - 2026-10-21
+
+### Behoben
+- **Inline-Video-Wiedergabe in der Post-Ansicht repariert (403-Fix):**
+  - Authentifizierungs-Cookie (`me_cookie`) wird nun nahtlos an den Download-Cache (`MediaCache`), den integrierten FFmpeg-Videodecoder sowie den Audio-Begleiter übergeben.
+  - Verhindert, dass NSFW/NSFL-Videos mit HTTP 403 Forbidden ("age-verification-required") abgelehnt werden. Videos spielen nun direkt eingebettet in der Beitragsansicht über den Kommentaren ab.
+- **Display-Freeze beim Beenden des Vollbild-Videos (KMSDRM -16) behoben:**
+  - Auf Linux-Handhelds (ArkOS / R36S) führte das Beenden von `ffplay` zu `ERROR: Could not queue pageflip: -16` (EBUSY), wodurch der Bildschirm einfror und ein Verlassen mit `B` unmöglich schien.
+  - Die Display-Oberfläche wird beim Verlassen des Players jetzt sofort sauber resynchronisiert (`set_mode`), sodass die Rückkehr zur App verzögerungsfrei gelingt.
+  - Doppelpufferung (`SDL_VIDEO_DOUBLE_BUFFER=1`) im Start-Skript aktiviert.
+
+### Geändert
+- **`A: Vollbild` Overlay-Badge entfernt:**
+  - Das Abzeichen oben rechts über dem Video in der Beitragsansicht wurde vollständig entfernt, damit das Video ungestört und unverdeckt sichtbar ist.
+- **Release-ZIPs im Unterordner `release/`:**
+  - Gebaute Release-Archive werden ab sofort ordentlich in `release/` abgelegt, um das Hauptverzeichnis sauber zu halten.
+
+---
+
 ## [0.3.12] - 2026-10-21
 
 ### Behoben

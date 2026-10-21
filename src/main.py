@@ -164,16 +164,26 @@ class Pr0App:
         self.config_path = config_path
 
         # Core subsystems
-        self.api = Pr0API(me_cookie=self.config.get("me_cookie"))
+        self.me_cookie = str(self.config.get("me_cookie", ""))
+        self.api = Pr0API(me_cookie=self.me_cookie)
         self.cache = MediaCache(
             cache_dir=self.config.get("cache_dir", "/tmp/pr0cache"),
             max_files=self.config.get("max_cache_files", 100),
+            me_cookie=self.me_cookie,
         )
         preferred_player = self.config.get("video_player") or self.config.get("video_player_path")
         self.button_layout = str(self.config.get("button_layout", "auto"))
-        self.video = VideoPlayer(preferred_player=preferred_player, button_layout=self.button_layout)
+        self.video = VideoPlayer(
+            preferred_player=preferred_player,
+            button_layout=self.button_layout,
+            me_cookie=self.me_cookie,
+        )
         self.autoplay_audio = bool(self.config.get("autoplay_audio", True))
-        self.inline_player = InlineVideoPlayer(video_player=self.video, enable_audio=self.autoplay_audio)
+        self.inline_player = InlineVideoPlayer(
+            video_player=self.video,
+            enable_audio=self.autoplay_audio,
+            me_cookie=self.me_cookie,
+        )
         self.input_mgr = InputManager(axis_threshold=0.45, layout=self.button_layout)
 
         # Feed & Content State
@@ -1129,6 +1139,10 @@ class Pr0App:
                 if self.api.is_authenticated:
                     self.api.logout()
                     self.config["me_cookie"] = ""
+                    self.me_cookie = ""
+                    self.cache.set_cookie("")
+                    self.video.set_cookie("")
+                    self.inline_player.set_cookie("")
                     save_config(self.config, self.config_path)
                     self.set_toast("Erfolgreich abgemeldet.", COLOR_RED, duration=2.0)
                 else:
@@ -1423,6 +1437,10 @@ class Pr0App:
                 uname, cookie = self.login_success_pending
                 self.login_success_pending = None
                 self.config["me_cookie"] = cookie
+                self.me_cookie = cookie
+                self.cache.set_cookie(cookie)
+                self.video.set_cookie(cookie)
+                self.inline_player.set_cookie(cookie)
                 save_config(self.config, self.config_path)
                 self.api.update_cookie(cookie)
                 self._stop_login_flow()

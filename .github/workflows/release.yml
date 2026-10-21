@@ -31,8 +31,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            pr0-retroconsole-*.zip
-            pr0-retroconsole.zip
+            release/pr0-retroconsole-*.zip
+            release/pr0-retroconsole.zip
           generate_release_notes: true
           draft: false
           prerelease: false

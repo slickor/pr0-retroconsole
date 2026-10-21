@@ -26,6 +26,7 @@ Thumbs.db
 
 # Build & Release Archives
 dist/
+release/
 *.zip
 /pr0-presentation-*.png
 
