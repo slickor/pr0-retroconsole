@@ -6,9 +6,9 @@
 
 <p align="center">
   <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
-  <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20muOS%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.13-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.4.1-orange?style=for-the-badge" alt="Changelog"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
 </p>
 

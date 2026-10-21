@@ -138,9 +138,9 @@ def create_poster():
     # -------------------------------------------------------------
     curr_y = 50
 
-    # Badges (ArkOS, CrossMix-OS, Knulli, Release, Open Source)
+    # Badges (ArkOS, CrossMix-OS, muOS, Knulli, Release, Open Source)
     p1_w, p1_h = draw_pill(draw, 70, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
-    p2_w, p2_h = draw_pill(draw, 70 + p1_w + 12, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
+    p2_w, p2_h = draw_pill(draw, 70 + p1_w + 12, curr_y, "CROSSMIX & MUOS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
     p3_w, p3_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12, curr_y, "KNULLI", font_badge, (38, 22, 52, 255), (200, 145, 255, 255), (95, 45, 135, 255))
     p4_w, p4_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12 + p3_w + 12, curr_y, f"RELEASE v{VERSION}", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
     draw_pill(draw, None, curr_y, "100% OPEN SOURCE", font_badge, (30, 30, 35, 255), COLOR_TEXT_GRAY, (60, 60, 70, 255), right_x=W - 70)
@@ -171,7 +171,7 @@ def create_poster():
 
     # Subtitle
     curr_y += box_h + 16
-    sub_text = "Die native pr0gramm-App für Handheld-Konsolen • R36S, TrimUI Smart Pro, ArkOS, CrossMix, Knulli & Co."
+    sub_text = "Die native pr0gramm-App für Handheld-Konsolen • R36S, TrimUI Smart Pro & Brick, ArkOS, muOS, CrossMix & Co."
     draw.text((70, curr_y), sub_text, font=font_subtitle, fill=COLOR_TEXT_GRAY)
 
     curr_y += 48
@@ -245,19 +245,19 @@ def create_poster():
             "points": [
                 ("Integrierter Videoplayer via mpv mit vollem Sound", True),
                 ("60 FPS flüssig (B-Frame Reordering Bug behoben!)", True),
-                ("Inline-Vorschau im Feed + Fullscreen auf Knopfdruck", False),
+                ("Video-Fortschrittsbalken (Inline & Vollbild) + 10% Seek", True),
                 ("Automatischer Netzwerk-Puffer & Offline-Wiedergabe", False),
             ]
         },
         {
             "num": "03",
-            "title": "Original pr0.app Look & Header",
+            "title": "Kommentare & Interaktion",
             "tag": "AUTHENTIC UI",
             "points": [
                 ("Detailgetreuer Header mit Logo, Suche & Filtern", True),
-                ("Schnellumschaltung: Beliebt, Neu und Top-Feed", False),
+                ("Kommentare lesen, direkt beantworten & voten (+ / -)", True),
                 ("Vollständiger Filter-Support: SFW, NSFW, NSFL & Alle", True),
-                ("Tags, Benis-Score und scrollbarer Kommentarbaum", False),
+                ("Schnellumschaltung: Beliebt, Neu und Top-Feed", False),
             ]
         },
         {
@@ -288,7 +288,7 @@ def create_poster():
             "tag": "EASY SETUP",
             "points": [
                 ("ZIP-Archiv direkt auf die SD-Karte in /roms/ports/ entpacken", True),
-                ("Kompatibel mit R36S, TrimUI, ArkOS, CrossMix, Knulli uvm.", True),
+                ("Unterstützt R36S, TrimUI, ArkOS, muOS, CrossMix & Knulli", True),
                 ("Alle benötigten Bibliotheken (pure-python requests) an Bord", False),
                 ("Konfiguration (config.json) wird bei Updates nicht überschrieben", False),
             ]
@@ -374,7 +374,7 @@ def create_banner():
     # Left Column: Information (Width 850px)
     curr_y = 70
     p1_w, p1_h = draw_pill(draw, 75, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
-    p2_w, p2_h = draw_pill(draw, 75 + p1_w + 10, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
+    p2_w, p2_h = draw_pill(draw, 75 + p1_w + 10, curr_y, "CROSSMIX & MUOS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
     p3_w, p3_h = draw_pill(draw, 75 + p1_w + 10 + p2_w + 10, curr_y, "KNULLI", font_badge, (38, 22, 52, 255), (200, 145, 255, 255), (95, 45, 135, 255))
     draw_pill(draw, 75 + p1_w + 10 + p2_w + 10 + p3_w + 10, curr_y, f"v{VERSION} RELEASE", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
 
@@ -409,11 +409,11 @@ def create_banner():
     # Features List on Left
     features = [
         ("01", "Volle Handheld-Steuerung", "D-Pad, Sticks, Hold-to-Scroll & Nintendo-/Xbox-Layout Switch"),
-        ("02", "60 FPS Videos & Sound", "Hardware-gestützter mpv-Player, B-Frame Fix & Inline-Vorschau"),
-        ("03", "Authentischer pr0.app Look", "Web-Header, Schnellumschaltung (Beliebt/Neu) & SFW/NSFW/NSFL Filter"),
+        ("02", "60 FPS Videos & Sound", "Hardwarenaher mpv-Player, Fortschrittsbalken & 10% Seek"),
+        ("03", "Kommentare & Voten (+ / -)", "Kommentare lesen, direkt beantworten und Up-/Downvotes vergeben"),
         ("04", "QR-Code Express-Login", "Scannen mit Smartphone genügt – kein Cookie-Gefummel auf SD!"),
         ("05", "High-Speed Cache", "Asynchrones Vorladen im RAM & auf Disk für flüssiges Durchscrollen"),
-        ("06", "Plug & Play Installation", "Einfach ZIP nach /roms/ports/ entpacken & direkt loslegen"),
+        ("06", "Plug & Play Installation", "Unterstützt R36S, TrimUI, ArkOS, muOS, CrossMix-OS & Knulli"),
     ]
 
     for num, title, desc in features:
@@ -424,7 +424,7 @@ def create_banner():
 
     # Bottom Footer info
     footer_y = H - 85
-    draw.text((75, footer_y), "Open Source auf GitHub • Pure Python & SDL2 • Für R36S, TrimUI Smart Pro, ArkOS, CrossMix, Knulli & Co.", 
+    draw.text((75, footer_y), "Open Source auf GitHub • Pure Python & SDL2 • Für R36S, TrimUI Smart Pro, ArkOS, muOS, CrossMix & Co.", 
               font=font_footer, fill=COLOR_TEXT_MUTED)
 
     # Right Column: 3D Render (Width 940px, Height 530px or larger)
@@ -446,7 +446,7 @@ def create_banner():
 
         # Labels
         draw_pill(draw, rx + 25, ry + 25, "R36S Grid (ArkOS / Knulli)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6)
-        draw_pill(draw, None, ry + 25, "TrimUI 16:9 Grid (CrossMix / Knulli)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6, right_x=rx + target_rw - 25)
+        draw_pill(draw, None, ry + 25, "TrimUI 16:9 Grid (CrossMix / muOS)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6, right_x=rx + target_rw - 25)
 
         # Bottom card under render
         card_y = ry + target_rh + 35
@@ -456,8 +456,8 @@ def create_banner():
         draw.rounded_rectangle((rx, card_y, rx + card_w, card_y + 4), radius=2, fill=COLOR_ORANGE)
 
         draw.text((rx + 30, card_y + 25), "Bereit für die Hosentasche?", font=font_item_title, fill=COLOR_TEXT_WHITE)
-        draw.text((rx + 30, card_y + 65), f"Das Release v{VERSION} bringt perfekten Videosound, 60 FPS ohne Frame-Jumps,", font=font_item_desc, fill=COLOR_TEXT_GRAY)
-        draw.text((rx + 30, card_y + 95), "die originalgetreue pr0.app Navigationsleiste und QR-Code Login.", font=font_item_desc, fill=COLOR_TEXT_GRAY)
+        draw.text((rx + 30, card_y + 65), f"Das Meilenstein-Release v{VERSION} bringt Kommentare (+ / - Voting & Antworten),", font=font_item_desc, fill=COLOR_TEXT_GRAY)
+        draw.text((rx + 30, card_y + 95), "Video-Fortschrittsbalken, muOS-Support und QR-Code Login.", font=font_item_desc, fill=COLOR_TEXT_GRAY)
         draw.text((rx + 30, card_y + 135), "Feedback, Benis & Pull Requests auf GitHub jederzeit willkommen!", font=font_item_desc, fill=COLOR_ORANGE)
 
     im.save(BANNER_PATH, "PNG", quality=95)
