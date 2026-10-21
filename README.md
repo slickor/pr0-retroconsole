@@ -8,7 +8,7 @@
   <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.7-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.8-orange?style=for-the-badge" alt="Changelog"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
 </p>
 
@@ -58,16 +58,16 @@
 
 | Handheld Button | PC / Tastatur | Grid-View | Post-View (inkl. Kommentare) | Vollbild-Video (`mpv`) |
 |---|---|---|---|---|
-| **D-Pad Links / Rechts** | `◄` / `►` | Thumbnail auswählen | Vorheriger / Nächster Post | - |
-| **D-Pad Oben / Unten** | `▲` / `▼` | Zeilennavigation | Durch Post & Kommentare scrollen | - |
+| **D-Pad Links / Rechts** | `◄` / `►` | Thumbnail auswählen (im Header: Filter wählen) | Vorheriger / Nächster Post | - |
+| **D-Pad Oben / Unten** | `▲` / `▼` | Zeilennavigation (**▲ in Zeile 0 öffnet Header**) | Durch Post & Kommentare scrollen | - |
 | **Rechter Analogstick** | `W` / `S` | Turbo-Scroll | Schnelles Scrollen im Kommentarbaum | - |
-| **A** | `Enter` / `Space` | Post öffnen | Video im Vollbild öffnen | Play / Pause |
-| **B** | `Esc` / `Backspace` / `Q` | App beenden (2x) | Zurück zum Raster | Vollbild beenden / Zurück |
+| **A** | `Enter` / `Space` | Post öffnen (im Header: Filter togglen) | Video im Vollbild öffnen | Play / Pause |
+| **B** | `Esc` / `Backspace` / `Q` | App beenden (im Header: zurück zum Grid) | Zurück zum Raster | Vollbild beenden / Zurück |
 | **L2 / R2** | `T` | **Beliebt 🔁 Neu** | **Beliebt 🔁 Neu** | - |
-| **R1** | `+` / `=` / `R` | Content-Filter wechseln | Upvote (+1 Blussi) vergeben | - |
-| **L1** | `-` / `E` | Content-Filter wechseln | Downvote (-1) vergeben | - |
+| **R1** | `+` / `=` / `R` | Schnell-Filter vorwärts (SFW -> Nur NSFW -> ...) | Upvote (+1 Blussi) vergeben | - |
+| **L1** | `-` / `E` | Schnell-Filter rückwärts | Downvote (-1) vergeben | - |
 | **X** | `I` / `X` | Einstellungen & Farbschema | Einstellungen öffnen | - |
-| **Y** | `Tab` / `Y` | Beliebt 🔁 Neu | - | - |
+| **Y** | `Tab` / `Y` | Beliebt 🔁 Neu (im Header: **Solo-Filter**) | - | - |
 
 ---
 

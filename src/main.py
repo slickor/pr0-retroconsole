@@ -181,6 +181,8 @@ class Pr0App:
         self.selected_idx: int = 0
         self.grid_scroll_row: int = 0
         self.at_end: bool = False
+        self.header_focus: bool = False
+        self.header_idx: int = 2  # 0=neu, 1=beliebt, 2=sfw, 3=nsfw, 4=nsfl, 5=pol
 
         # Post & Overlay State
         self.state: str = STATE_GRID
@@ -617,9 +619,114 @@ class Pr0App:
         if action != ACTION_BACK:
             self.exit_confirm_time = 0.0
 
-        if action == ACTION_UP and total > 0:
-            if self.selected_idx >= cols:
+        # -------------------------------------------------------------
+        # 1. Header Focus Navigation (Interactive Filter & Mode Bar)
+        # -------------------------------------------------------------
+        if self.header_focus:
+            header_items = ["neu", "beliebt", "sfw", "nsfw", "nsfl", "pol"]
+            if action == ACTION_LEFT:
+                self.header_idx = (self.header_idx - 1) % len(header_items)
+                return
+            elif action == ACTION_RIGHT:
+                self.header_idx = (self.header_idx + 1) % len(header_items)
+                return
+            elif action in (ACTION_DOWN, ACTION_BACK):
+                self.header_focus = False
+                if total > 0:
+                    col = max(0, self.header_idx - 2) if self.header_idx >= 2 else 0
+                    self.selected_idx = min(total - 1, min(cols - 1, col))
+                return
+            elif action == ACTION_SELECT:
+                target = header_items[self.header_idx]
+                if target == "neu":
+                    if self.promoted != 0:
+                        self.promoted = 0
+                        self.set_toast("Modus: Neu", COLOR_ORANGE, duration=1.5)
+                        self.items = []
+                        self.selected_idx = 0
+                        self.grid_scroll_row = 0
+                        self.fetch_feed(append=False)
+                elif target == "beliebt":
+                    if self.promoted != 1:
+                        self.promoted = 1
+                        self.set_toast("Modus: Beliebt", COLOR_ORANGE, duration=1.5)
+                        self.items = []
+                        self.selected_idx = 0
+                        self.grid_scroll_row = 0
+                        self.fetch_feed(append=False)
+                else:
+                    flag_mask_map = {
+                        "sfw": FLAG_SFW,
+                        "nsfw": 2,
+                        "nsfl": 4,
+                        "pol": 8,
+                    }
+                    mask = flag_mask_map.get(target, 0)
+                    new_flags = self.flags ^ mask
+                    if new_flags == 0:
+                        self.set_toast("Mindestens ein Filter muss aktiv bleiben!", COLOR_RED, duration=1.5)
+                    else:
+                        self.flags = new_flags
+                        self.config["flags"] = self.flags
+                        save_config(self.config, self.config_path)
+                        flag_name = Pr0API.get_flag_string(self.flags)
+                        if self.flags == 2:
+                            self.set_toast("Filter: Nur NSFW", COLOR_ORANGE, duration=1.5)
+                        elif self.flags == 4:
+                            self.set_toast("Filter: Nur NSFL", COLOR_ORANGE, duration=1.5)
+                        else:
+                            self.set_toast(f"Filter: {flag_name}", COLOR_ORANGE, duration=1.5)
+                        self.items = []
+                        self.selected_idx = 0
+                        self.grid_scroll_row = 0
+                        self.fetch_feed(append=False)
+                return
+            elif action == ACTION_TOGGLE_MODE:
+                # Solo-Select flag with Y button (or toggle Neu/Beliebt)
+                target = header_items[self.header_idx]
+                flag_mask_map = {
+                    "sfw": FLAG_SFW,
+                    "nsfw": 2,
+                    "nsfl": 4,
+                    "pol": 8,
+                }
+                if target in flag_mask_map:
+                    self.flags = flag_mask_map[target]
+                    self.config["flags"] = self.flags
+                    save_config(self.config, self.config_path)
+                    flag_name = Pr0API.get_flag_string(self.flags)
+                    self.set_toast(f"Filter: Nur {flag_name}", COLOR_ORANGE, duration=1.5)
+                    self.items = []
+                    self.selected_idx = 0
+                    self.grid_scroll_row = 0
+                    self.fetch_feed(append=False)
+                elif target in ("neu", "beliebt"):
+                    self.promoted = 0 if self.promoted == 1 else 1
+                    mode_name = "Neu" if self.promoted == 0 else "Beliebt"
+                    self.set_toast(f"Modus: {mode_name}", COLOR_ORANGE, duration=1.5)
+                    self.items = []
+                    self.selected_idx = 0
+                    self.grid_scroll_row = 0
+                    self.fetch_feed(append=False)
+                return
+            elif action == ACTION_INFO:
+                self.state = STATE_SETTINGS
+                self.settings_idx = 0
+                return
+            return
+
+        # -------------------------------------------------------------
+        # 2. Grid View Navigation
+        # -------------------------------------------------------------
+        if action == ACTION_UP:
+            if total > 0 and self.selected_idx >= cols:
                 self.selected_idx -= cols
+            else:
+                # Reached top row (or feed is empty): jump into interactive header!
+                self.header_focus = True
+                col = (self.selected_idx % cols) if total > 0 else 0
+                self.header_idx = min(5, max(2, col + 2))
+                return
         elif action == ACTION_DOWN and total > 0:
             if self.selected_idx + cols < total:
                 self.selected_idx += cols
@@ -657,8 +764,8 @@ class Pr0App:
             self.fetch_feed(append=False)
             return
         elif action in (ACTION_UPVOTE, ACTION_DOWNVOTE):
-            # Quick-cycle content filter (Flags): SFW (1) -> SFW+NSFW (3) -> SFW+NSFW+NSFL (7) -> Alle (15)
-            flag_cycle = [1, 3, 7, 15]
+            # Quick-cycle content filter (Flags): SFW (1) -> Nur NSFW (2) -> SFW+NSFW (3) -> SFW+NSFW+NSFL (7) -> Alle (15)
+            flag_cycle = [1, 2, 3, 7, 15]
             curr_idx = flag_cycle.index(self.flags) if self.flags in flag_cycle else 0
             delta = 1 if action == ACTION_UPVOTE else -1
             self.flags = flag_cycle[(curr_idx + delta) % len(flag_cycle)]
@@ -666,7 +773,12 @@ class Pr0App:
             save_config(self.config, self.config_path)
 
             flag_name = Pr0API.get_flag_string(self.flags)
-            self.set_toast(f"Filter: {flag_name}", COLOR_ORANGE, duration=1.5)
+            if self.flags == 2:
+                self.set_toast("Filter: Nur NSFW", COLOR_ORANGE, duration=1.5)
+            elif self.flags == 4:
+                self.set_toast("Filter: Nur NSFL", COLOR_ORANGE, duration=1.5)
+            else:
+                self.set_toast(f"Filter: {flag_name}", COLOR_ORANGE, duration=1.5)
             self.items = []
             self.selected_idx = 0
             self.grid_scroll_row = 0
@@ -778,7 +890,9 @@ class Pr0App:
         scroll_keys = ["normal", "schnell", "turbo"]
         flags_options = [
             (FLAG_SFW, "SFW (1)"),
+            (2, "Nur NSFW (2)"),
             (FLAG_SFW | 2, "SFW + NSFW (3)"),
+            (4, "Nur NSFL (4)"),
             (FLAG_SFW | 2 | 4, "SFW + NSFW + NSFL (7)"),
             (15, "Alle Flags (15)"),
         ]
@@ -1107,7 +1221,13 @@ class Pr0App:
 
         if self.state == STATE_GRID:
             # 1. Grid View
-            self.ui.render_grid(self.items, self.selected_idx, self.cache, self.grid_scroll_row)
+            self.ui.render_grid(
+                self.items,
+                self.selected_idx,
+                self.cache,
+                self.grid_scroll_row,
+                header_focused=self.header_focus,
+            )
             self.ui.render_header(
                 mode_label=mode_label,
                 flags_label=flags_label,
@@ -1117,15 +1237,28 @@ class Pr0App:
                 is_loading=self.is_fetching_feed,
                 promoted=self.promoted,
                 flags=self.flags,
+                header_focused=self.header_focus,
+                header_idx=self.header_idx,
             )
-            self.ui.render_footer(
-                hints=[
+            if self.header_focus:
+                footer_hints = [
+                    ("D-Pad", "Wählen"),
+                    ("A", "An/Aus"),
+                    ("Y", "Solo"),
+                    ("Runter/B", "Grid"),
+                    ("X", "Setup"),
+                ]
+            else:
+                footer_hints = [
                     ("D-Pad", "Nav"),
+                    ("Hoch", "Filter/Header"),
                     ("A", "Öffnen"),
                     ("L1/R1", "Filter"),
-                    ("L2/R2", "Beliebt/Neu"),
+                    ("L2/R2", "Modus"),
                     ("X", "Setup"),
-                ],
+                ]
+            self.ui.render_footer(
+                hints=footer_hints,
                 toast_message=toast_active,
                 toast_color=self.toast_color,
             )

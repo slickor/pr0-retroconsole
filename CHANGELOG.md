@@ -7,6 +7,22 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.8] - 2026-10-21
+
+### Hinzugefügt
+- **Interaktive Header-Navigation im Web-Stil (Option 3):**
+  - Befindet man sich in der obersten Zeile der Grid-Ansicht, springt der Cursor mit **D-Pad Hoch** nahtlos in die Header-Leiste direkt über das jeweilige Flag.
+  - Im Header kann mit **D-Pad Links/Rechts** zwischen `neu`, `beliebt`, `sfw`, `nsfw`, `nsfl` und `pol` navigiert werden.
+  - **Einzelschaltung mit `A`:** Jedes Flag (`sfw`, `nsfw`, `nsfl`, `pol`) lässt sich einzeln an- und abwählen (wie im Web!). Mindestens ein Filter bleibt als Schutz immer aktiv.
+  - **Solo-Auswahl mit `Y`:** Blitzschnell ausschließlich das gewählte Flag aktivieren (z.B. Cursor auf `nsfw` -> `Y` drücken -> sofort reiner NSFW-Feed!).
+  - **Rückkehr zum Grid mit `D-Pad Runter` oder `B`:** Der Cursor kehrt räumlich passend in die entsprechende Spalte des Kachelgitters zurück.
+- **`Nur NSFW (2)` & `Nur NSFL (4)` in Schnellwahl & Settings:**
+  - Die Schultertasten `L1` / `R1` durchlaufen nun: `SFW (1) -> Nur NSFW (2) -> SFW+NSFW (3) -> SFW+NSFW+NSFL (7) -> Alle (15)`.
+  - Im Einstellungsmenü (`START`) kann `Nur NSFW` ebenfalls direkt als Filter gewählt werden.
+- **Photorealistisches 3D-Produkt-Rendering:** Neues Octane-Rendering in Banner und Infografik-Poster mit unverzerrter, nativer pr0gramm-Gridview auf R36S und TrimUI Smart Pro.
+
+---
+
 ## [0.3.7] - 2026-10-21
 
 ### Hinzugefügt

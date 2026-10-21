@@ -391,6 +391,8 @@ class UIRenderer:
         is_loading: bool = False,
         promoted: int | None = None,
         flags: int | None = None,
+        header_focused: bool = False,
+        header_idx: int = 2,
     ) -> None:
         """Render top navigation bar matching the authentic pr0.app / pr0gramm layout."""
         # 0. Solid header bar with subtle bottom border
@@ -429,14 +431,17 @@ class UIRenderer:
         # 2. Main Navigation Tabs: "neu" and "beliebt" (all lowercase, matching pr0.app)
         is_promoted = (promoted == 1) if promoted is not None else (mode_label.lower() in ("beliebt", "top"))
 
-        # Tab: neu
+        # Tab: neu (Index 0)
         neu_is_active = not is_promoted
         neu_font = self.font_bold if neu_is_active else self.font_regular
         neu_color = self.color_text if neu_is_active else self.color_text_dim
         neu_y = center_y - neu_font.get_height() // 2
         neu_w = self.draw_text(self.screen, neu_font, "neu", neu_color, (x, neu_y))
 
-        if neu_is_active:
+        if header_focused and header_idx == 0:
+            neu_box = pygame.Rect(x - int(5 * self.scale), center_y - int(12 * self.scale), neu_w + int(10 * self.scale), int(24 * self.scale))
+            pygame.draw.rect(self.screen, self.color_accent, neu_box, width=2, border_radius=4)
+        elif neu_is_active:
             underline_h = max(2, int(3 * self.scale))
             pygame.draw.rect(
                 self.screen,
@@ -446,14 +451,17 @@ class UIRenderer:
             )
         x += neu_w + int(14 * self.scale)
 
-        # Tab: beliebt
+        # Tab: beliebt (Index 1)
         beliebt_is_active = is_promoted
         beliebt_font = self.font_bold if beliebt_is_active else self.font_regular
         beliebt_color = self.color_text if beliebt_is_active else self.color_text_dim
         beliebt_y = center_y - beliebt_font.get_height() // 2
         beliebt_w = self.draw_text(self.screen, beliebt_font, "beliebt", beliebt_color, (x, beliebt_y))
 
-        if beliebt_is_active:
+        if header_focused and header_idx == 1:
+            bel_box = pygame.Rect(x - int(5 * self.scale), center_y - int(12 * self.scale), beliebt_w + int(10 * self.scale), int(24 * self.scale))
+            pygame.draw.rect(self.screen, self.color_accent, bel_box, width=2, border_radius=4)
+        elif beliebt_is_active:
             underline_h = max(2, int(3 * self.scale))
             pygame.draw.rect(
                 self.screen,
@@ -474,7 +482,7 @@ class UIRenderer:
         )
         x += int(14 * self.scale)
 
-        # 3. Content Flags (SFW, NSFW, NSFL pills with authentic pr0 color coding)
+        # 3. Content Flags (SFW, NSFW, NSFL, POL pills with authentic pr0 color coding)
         active_flags = flags if flags is not None else 1
         if flags is None:
             fl_lower = flags_label.lower()
@@ -485,34 +493,57 @@ class UIRenderer:
                 active_flags |= 2
             if "nsfl" in fl_lower:
                 active_flags |= 4
+            if "pol" in fl_lower or "nsfp" in fl_lower:
+                active_flags |= 8
 
         flag_defs = [
             ("sfw", 1, (0, 229, 153), (20, 44, 30)),
             ("nsfw", 2, (245, 166, 35), (46, 36, 18)),
             ("nsfl", 4, (238, 77, 46), (46, 22, 22)),
+            ("pol", 8, (130, 165, 215), (20, 32, 48)),
         ]
 
         pill_h = int(18 * self.scale)
         pill_y = center_y - pill_h // 2
 
-        for f_label, f_mask, f_fg, f_bg in flag_defs:
+        for i, (f_label, f_mask, f_fg, f_bg) in enumerate(flag_defs):
+            item_global_idx = 2 + i  # 2=sfw, 3=nsfw, 4=nsfl, 5=pol
             is_flag_on = bool(active_flags & f_mask)
+            is_focused = bool(header_focused and header_idx == item_global_idx)
+
             f_txt_w = self.font_small.size(f_label)[0]
             if is_flag_on:
                 pill_w = f_txt_w + int(16 * self.scale)
-                if x + pill_w < self.width - 140:
+                if x + pill_w < self.width - 120:
                     pill_rect = pygame.Rect(x, pill_y, pill_w, pill_h)
                     pygame.draw.rect(self.screen, f_bg, pill_rect, border_radius=3)
                     pygame.draw.rect(self.screen, f_fg, pill_rect, width=1, border_radius=3)
                     dot_r = max(2, int(2.5 * self.scale))
                     pygame.draw.circle(self.screen, f_fg, (x + int(6 * self.scale), center_y), dot_r)
                     self.draw_text(self.screen, self.font_small, f_label, f_fg, (x + int(12 * self.scale), center_y - self.font_small.get_height() // 2))
-                    x += pill_w + int(6 * self.scale)
+
+                    if is_focused:
+                        focus_rect = pill_rect.inflate(int(4 * self.scale), int(4 * self.scale))
+                        pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=2, border_radius=4)
+                        caret_y = self.header_height - 2
+                        pygame.draw.line(self.screen, self.color_accent, (pill_rect.centerx - int(5 * self.scale), caret_y), (pill_rect.centerx + int(5 * self.scale), caret_y), 2)
+
+                    x += pill_w + int(8 * self.scale)
             else:
-                pill_w = f_txt_w + int(8 * self.scale)
-                if x + pill_w < self.width - 140:
-                    self.draw_text(self.screen, self.font_small, f_label, self.color_card_border, (x + int(4 * self.scale), center_y - self.font_small.get_height() // 2))
-                    x += pill_w + int(4 * self.scale)
+                pill_w = f_txt_w + int(10 * self.scale)
+                if x + pill_w < self.width - 120:
+                    pill_rect = pygame.Rect(x, pill_y, pill_w, pill_h)
+                    if is_focused:
+                        pygame.draw.rect(self.screen, (35, 35, 42), pill_rect, border_radius=3)
+                        self.draw_text(self.screen, self.font_small, f_label, self.color_text_dim, (x + int(5 * self.scale), center_y - self.font_small.get_height() // 2))
+                        focus_rect = pill_rect.inflate(int(4 * self.scale), int(4 * self.scale))
+                        pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=2, border_radius=4)
+                        caret_y = self.header_height - 2
+                        pygame.draw.line(self.screen, self.color_accent, (pill_rect.centerx - int(5 * self.scale), caret_y), (pill_rect.centerx + int(5 * self.scale), caret_y), 2)
+                    else:
+                        self.draw_text(self.screen, self.font_small, f_label, self.color_card_border, (x + int(4 * self.scale), center_y - self.font_small.get_height() // 2))
+
+                    x += pill_w + int(6 * self.scale)
 
         # 4. Right Section (Stream count, pr0mium Star, User/Anmelden, Settings Hint)
         rx = self.width - 10
@@ -603,6 +634,7 @@ class UIRenderer:
         selected_idx: int,
         cache_manager: Any,
         scroll_row: int,
+        header_focused: bool = False,
     ) -> None:
         """Render the thumbnail grid viewport with smooth row scrolling."""
         self.screen.fill(self.color_bg)
@@ -677,7 +709,10 @@ class UIRenderer:
 
                 # Selection frame
                 if is_selected:
-                    pygame.draw.rect(self.screen, self.color_accent, card_rect, width=3, border_radius=6)
+                    if header_focused:
+                        pygame.draw.rect(self.screen, (70, 70, 80), card_rect, width=2, border_radius=6)
+                    else:
+                        pygame.draw.rect(self.screen, self.color_accent, card_rect, width=3, border_radius=6)
                 else:
                     pygame.draw.rect(self.screen, self.color_card_border, card_rect, width=1, border_radius=6)
 
