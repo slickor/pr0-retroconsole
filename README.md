@@ -1,147 +1,117 @@
 # pr0-retroconsole
 
-![pr0-retroconsole Banner](assets/pr0-presentation-banner.png)
+<p align="center">
+  <img src="docs/images/pr0-presentation-banner.png" alt="pr0-retroconsole Banner" width="100%">
+</p>
 
-> Ein nativer Handheld-Client für das Imageboard **pr0.app** (pr0gramm) auf Basis von Python und Pygame (SDL2), optimiert für Linux-basierte Retro-Gaming-Handhelds wie den **R36S** (640x480, ArkOS) und den **TrimUI Smart Pro** (1280x720, CrossMix OS).
+<p align="center">
+  <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
+  <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix--OS%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.3.7-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
+</p>
 
-Basierend auf den bewährten Architekturmustern von [ha-retroconsole](https://github.com/slickor/ha-retroconsole).
+> **pr0-retroconsole** ist ein nativer, leichtgewichtiger Client für das Imageboard [pr0gramm](https://pr0gramm.com), maßgeschneidert für Linux-basierte Retro-Handheld-Konsolen wie den **R36S** (640x480, ArkOS), den **TrimUI Smart Pro** (1280x720, CrossMix-OS), Anbernic-, Powkiddy- und PortMaster-Systeme.
 
 ---
 
-## Features
+<details>
+<summary>📱 <b>Infografik & Feature-Poster ansehen (Klicken zum Ausklappen)</b></summary>
+<br>
+<p align="center">
+  <img src="docs/images/pr0-presentation-poster.png" alt="pr0-retroconsole Infografik-Poster" width="850">
+</p>
+</details>
 
-- **Performance auf Low-End-Hardware:** Vollständig asynchrones Multithreading für Image-Downloads und API-Calls ohne Ruckler oder Frame-Drops im Main-Render-Thread.
-- **Dynamische Skalierung:** Unterstützt native 640x480 (4:3, R36S) und 1280x720 (16:9, TrimUI Smart Pro) mit automatischer UI- und Thumbnail-Grid-Anpassung.
-- **pr0-Farbschema:** Originalgetreues Styling (`#161618` Richtiges Grau, `#212124` Cards/Overlays, `#ee4d2e` pr0-Orange).
-- **Intelligente Ansichten:**
-  - **Grid-View:** Flüssiges Raster aus Thumbnails mit `[VID]`-Indikatoren, Endlos-Scrollen (`older`-Pagination) und Header mit aktuellem Feed-Modus.
-  - **Post-View:** Vollbildanzeige. Bei "Tapeten" (Bilder mit Seitenverhältnis $height / width > 1.5$) automatischer Wechsel auf "Fit-to-Width" mit vertikalem Scrollen.
-  - **Info- & Kommentar-Overlay:** Einblendbare Seitenleiste mit hierarchisch eingerücktem Kommentarbaum, Upvote/Downvote-Benis-Scores und Top-Tags.
-- **Plattformübergreifendes Video-Handling:**
-  - Startet `mpv` mit Hardware-Decoding auf ARM-Handhelds im Vollbildmodus.
-  - Fenstermodus für Desktop-Testing auf Windows / macOS.
-  - Fallback-Badge `[VIDEO - mpv nicht gefunden]`, falls kein Player installiert ist.
-  - SDL2-Event-Pufferung verhindert unbeabsichtigtes Schließen nach dem Videobeenden.
-- **RAM-Disk Caching:** Asynchroner Download nach `/tmp/pr0cache` (tmpfs auf Handhelds) mit automatischem Cache-Cleanup (max. 100 Dateien).
-- **Controller & Keyboard Dual-Input:** Unterstützt native SDL2-Gamepad-Events sowie Tastatur-Fallbacks für lokales Testen und `gptokeyb`.
+---
+
+## Highlights & Features
+
+- **Flüssiger Videosound & 60 FPS:**
+  - Videos laufen direkt in der Post-Vorschau synchron mit Ton.
+  - Vollbild-Wiedergabe via `mpv` auf Knopfdruck (`A`) mit Pause/Unpause und sauberem Beenden (`B`).
+  - Spezieller Software-Decoder-Modus (`--hwdec=no`) behebt den Allwinner-A133 DTS/PTS B-Frame-Ruckel-Bug auf dem TrimUI Smart Pro.
+- **Originalgetreuer pr0.app Look:**
+  - Authentischer Web-Header mit Suchleiste, Benis-Punkten, Benutzernamen und korrekten Rang-Farben (*Schwuchtel, Neuschwuchtel, Altschwuchtel, Moderator, Admin*).
+  - Integrierter Farbschema- und Akzent-Wechsler in den Einstellungen (*pr0 Dark, OLED Schwarz, Nord, Gruvbox, Retro Terminal*).
+- **Komfortable Handheld-Bedienung:**
+  - Flüssiges D-Pad & Analog-Stick Scrolling mit dynamischer Beschleunigung.
+  - Umschaltung zwischen **Beliebt** und **Neu** blitzschnell über `L2` / `R2` (oder `Y`).
+  - Schneller Content-Filter-Wechsel (SFW, NSFW, NSFL, Alle) über `R1` / `L1`.
+  - Wählbares Button-Layout (Nintendo `A`/`B` vs. Xbox `B`/`A`).
+- **QR-Code Express-Login:**
+  - Kein manuelles Kopieren von Cookies auf die SD-Karte mehr nötig!
+  - Handheld zeigt einen QR-Code an -> mit dem Smartphone scannen -> im Browser einloggen -> Handheld ist sofort angemeldet.
+  - Alternativ steht eine Bildschirmtastatur zur Direkteingabe bereit.
+- **Vollständiger Kommentarbaum:**
+  - Hierarchische Kommentare mit Einrückungen, Autorenrängen, Benis-Bewertung und Upvote/Downvote (+1 / -1).
+  - Intelligente Darstellung von "Tapeten" (lange Bilder scrollen vertikal über Inhaltsbreite).
+- **Smarter RAM- & Disk-Cache:**
+  - Asynchroner Mehrthread-Downloader nach `/tmp/pr0cache` (tmpfs) schont den Flash-Speicher der SD-Karte und sorgt für verzögerungsfreies Scrollen.
+- **Kompaktes Release-Paket:**
+  - Nur **~0,77 MB** klein (Pure-Python-Abhängigkeiten `requests` an Bord, keine unnötigen Bloatware-Assets).
 
 ---
 
 ## Steuerung & Tastenbelegung
 
-| Handheld Button | PC / Tastatur | Funktion in Grid-View | Funktion in Post-View (inkl. Kommentare) |
-|---|---|---|---|
-| **D-Pad Links / Rechts** | `Pfeiltasten ◄ / ►` | Navigation im Thumbnail-Raster | Vorheriger / Nächster Post |
-| **D-Pad Oben / Unten** | `Pfeiltasten ▲ / ▼` | Vertikale Zeilennavigation | Durch Bild/Video, Tags & Kommentare scrollen |
-| **Rechter Stick** | `W` / `S` (oder `PgUp`/`PgDn`) | Schnelles vertikales Scrollen | Schnelles Scrollen im Post & Kommentarbaum |
-| **A** | `Enter` / `Leertaste` | Post öffnen | Video mit Sound im Vollbild abspielen (mpv) |
-| **B** | `Esc` / `Backspace` / `Q` | App beenden (2x drücken) | Zurück zum Grid |
-| **X** | `I` / `X` | Einstellungen & Farbschema öffnen | Einstellungen öffnen |
-| **Y** | `Tab` / `Y` | Wechsel zwischen *Beliebt* & *Neu* | - |
-| **L2 / R2** | `T` | Wechsel zwischen *Beliebt* & *Neu* | - |
-| **R1** | `+` / `=` / `R` | Content-Filter wechseln (SFW, NSFW, etc.) | Upvote (+1 Blussi) vergeben |
-| **L1** | `-` / `E` | Content-Filter wechseln | Downvote (-1) vergeben |
+| Handheld Button | PC / Tastatur | Grid-View | Post-View (inkl. Kommentare) | Vollbild-Video (`mpv`) |
+|---|---|---|---|---|
+| **D-Pad Links / Rechts** | `◄` / `►` | Thumbnail auswählen | Vorheriger / Nächster Post | - |
+| **D-Pad Oben / Unten** | `▲` / `▼` | Zeilennavigation | Durch Post & Kommentare scrollen | - |
+| **Rechter Analogstick** | `W` / `S` | Turbo-Scroll | Schnelles Scrollen im Kommentarbaum | - |
+| **A** | `Enter` / `Space` | Post öffnen | Video im Vollbild öffnen | Play / Pause |
+| **B** | `Esc` / `Backspace` / `Q` | App beenden (2x) | Zurück zum Raster | Vollbild beenden / Zurück |
+| **L2 / R2** | `T` | **Beliebt 🔁 Neu** | **Beliebt 🔁 Neu** | - |
+| **R1** | `+` / `=` / `R` | Content-Filter wechseln | Upvote (+1 Blussi) vergeben | - |
+| **L1** | `-` / `E` | Content-Filter wechseln | Downvote (-1) vergeben | - |
+| **X** | `I` / `X` | Einstellungen & Farbschema | Einstellungen öffnen | - |
+| **Y** | `Tab` / `Y` | Beliebt 🔁 Neu | - | - |
 
 ---
 
-## Projektstruktur
+## Installation auf dem Handheld
 
-```text
-pr0-retroconsole/
-├── assets/
-│   └── fonts/                     # Bundled TrueType Fonts (Inter, FiraCode, m5x7)
-├── src/
-│   ├── main.py                    # Entry Point, Main Loop & State Machine
-│   ├── api.py                     # pr0.app REST Client & Nonce-Extraction
-│   ├── cache.py                   # Asynchroner RAM-Disk/Disk Downloader & Surface-Cache
-│   ├── ui.py                      # Skalierendes Pygame UI Rendering (Grid, Post, Overlay)
-│   ├── input.py                   # SDL2 Gamepad- & Keyboard-Input Dispatcher
-│   └── video.py                   # Plattformübergreifender mpv/ffplay Video-Launcher
-├── config.example.json            # Vorlage für Einstellungen & me-Cookie Auth
-├── pr0.gptk                       # gptokeyb Mapping für Handheld-Hardware
-├── pr0-retroconsole.sh            # PortMaster / EmulationStation Startskript
-├── install.sh                     # Automatischer Offline/Online-Installer für Handhelds
-├── requirements.txt               # pygame, requests, Pillow
-└── README.md
-```
+1. Lade das neueste Release-Archiv **`pr0-retroconsole-v*.zip`** von der [Releases-Seite](https://github.com/slickor/pr0-retroconsole/releases) herunter.
+2. Entpacke den Inhalt direkt in das `ports`-Verzeichnis deiner SD-Karte:
+   - **ArkOS / R36S:** `/roms/ports/` (bzw. auf dem `EASYROMS`-Laufwerk in `ports/`)
+   - **CrossMix-OS / TrimUI Smart Pro:** `/mnt/SDCARD/Emus/PORTS/`
+   - **PortMaster:** `/roms/ports/` bzw. `tools/PortMaster/`
+3. Stelle sicher, dass die Dateistruktur so aussieht:
+   ```text
+   ports/
+   ├── pr0-retroconsole.sh
+   └── pr0-retroconsole/
+       ├── src/
+       ├── assets/fonts/
+       ├── libs/
+       ├── pr0.gptk
+       └── ...
+   ```
+4. Handheld starten, ins Menü **Ports** wechseln, **pr0-retroconsole** auswählen und genießen!
 
 ---
 
-## Installation & Einrichtung
+## Authentifizierung & Login
 
-### 1. Lokales Testen am PC (Windows, macOS, Linux)
-
-1. Repository klonen und Abhängigkeiten installieren:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Konfiguration erstellen:
-   ```bash
-   cp config.example.json config.json
-   ```
-3. App starten:
-   ```bash
-   python src/main.py
-   ```
-
-### 2. Handheld-Release erstellen (für R36S / ArkOS / PortMaster)
-
-Führe einfach das PowerShell-Build-Skript aus:
-```powershell
-.\build.ps1
-```
-Das Skript erzeugt automatisch die Datei `pr0-retroconsole.zip` (~330 KB):
-- Windows-`.exe`-Dateien (`bin/`) und `.bat`/`.ps1`-Skripte werden automatisch ausgeschlossen.
-- Alle Shell-Skripte (`.sh`, `.gptk`) werden mit sauberen Unix-`LF`-Zeilenumbrüchen versehen.
-- Das ZIP folgt der PortMaster-Struktur (`pr0-retroconsole.sh` an der Wurzel, daneben der Ordner `pr0-retroconsole/`).
-
-### 3. Installation auf dem Handheld (ArkOS, CrossMix OS, PortMaster)
-
-1. Entpacke den Inhalt von `pr0-retroconsole.zip` direkt in das `ports`-Verzeichnis auf der SD-Karte:
-   - ArkOS / R36S: `/roms/ports/` (bzw. Laufwerk `EASYROMS:\ports\`)
-   - CrossMix OS / TrimUI: `/mnt/SDCARD/Emus/PORTS/`
-   -> Es liegt nun `pr0-retroconsole.sh` direkt in `ports/` und der Ordner `pr0-retroconsole/` daneben.
-2. SD-Karte wieder in den Handheld stecken, im Menü **Ports** starten und loslegen!
-   (Beim ersten Start führt `pr0-retroconsole.sh` automatisch `install.sh` aus, falls Abhängigkeiten fehlen).
-
----
-
-## Konfiguration (`config.json`)
-
-```json
-{
-  "resolution": "auto",
-  "width": 640,
-  "height": 480,
-  "fullscreen": false,
-  "promoted": 1,
-  "flags": 1,
-  "me_cookie": "",
-  "cache_dir": "/tmp/pr0cache",
-  "max_cache_files": 100,
-  "fps": 30
-}
-```
-
-### Flags-Bitmaske
-- `1` = SFW (Standard)
-- `2` = NSFW
-- `4` = NSFL
-- `8` = NSFP
-- Kombinationen durch Addition: z. B. `3` für SFW + NSFW.
-
-### Authentifizierung & Login
 Für Upvotes/Downvotes sowie NSFW-/NSFL-Inhalte stehen drei bequeme Anmeldemethoden zur Verfügung:
 
 1. **Smartphone-Companion (Empfohlen):**
    * Im Menü (`X`) auf **pr0gramm Account** drücken (`A`).
-   * Den angezeigten QR-Code mit der Smartphone-Kamera scannen (Geräte müssen im selben WLAN sein).
-   * Im Smartphone-Browser Benutzername, Passwort und Captcha eingeben – der Handheld loggt sich sofort automatisch ein!
+   * Den angezeigten QR-Code mit der Smartphone-Kamera scannen (Handy und Handheld im selben WLAN).
+   * Im mobilen Browser Benutzername, Passwort und Captcha eingeben – der Handheld loggt sich automatisch ein!
 2. **Direkt auf dem Handheld:**
    * Im Anmelde-Bildschirm `X` drücken, um auf direkte Eingabe umzuschalten.
    * Mit dem integrierten virtuellen On-Screen-Keyboard Zugangsdaten und Captcha eingeben.
 3. **Manuell per `config.json`:**
-   * Bestehenden `me`-Cookie-Wert aus dem Browser direkt in `config.json` unter `"me_cookie"` einfügen.
+   * Bestehenden `me`-Cookie-Wert aus dem Desktop-Browser direkt in `config.json` unter `"me_cookie"` einfügen.
+
+---
+
+## Changelog
+
+Alle Versionsänderungen und Neuerungen findest du ausführlich in der Datei [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

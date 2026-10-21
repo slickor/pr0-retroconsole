@@ -20,6 +20,9 @@ from src.version import VERSION
 # Paths
 SOURCE_RENDER = Path(r"C:\Users\Philipp\.gemini\antigravity\brain\d316afdf-bb51-41fd-aaae-10a6f05e5073\r36s_trimui_pr0gramm_consoles_1792434684236.jpg")
 OUTPUT_DIR = PROJECT_ROOT
+DOCS_IMAGES_DIR = PROJECT_ROOT / "docs" / "images"
+DOCS_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+
 POSTER_PATH = OUTPUT_DIR / "pr0-presentation-poster.png"
 BANNER_PATH = OUTPUT_DIR / "pr0-presentation-banner.png"
 
@@ -326,7 +329,8 @@ def create_poster():
     draw_pill(draw, None, footer_y + 30, "JETZT TESTEN >>", font_badge, COLOR_ORANGE, (255, 255, 255, 255), pad_x=22, pad_y=12, right_x=W - 70 - 30)
 
     im.save(POSTER_PATH, "PNG", quality=95)
-    print(f"Poster successfully created at {POSTER_PATH}")
+    im.save(DOCS_IMAGES_DIR / "pr0-presentation-poster.png", "PNG", quality=95)
+    print(f"Poster successfully created at {POSTER_PATH} and {DOCS_IMAGES_DIR / 'pr0-presentation-poster.png'}")
 
 
 def create_banner():
@@ -425,7 +429,8 @@ def create_banner():
         draw.text((rx + 30, card_y + 135), "Feedback, Benis & Pull Requests auf GitHub jederzeit willkommen!", font=font_item_desc, fill=COLOR_ORANGE)
 
     im.save(BANNER_PATH, "PNG", quality=95)
-    print(f"Banner successfully created at {BANNER_PATH}")
+    im.save(DOCS_IMAGES_DIR / "pr0-presentation-banner.png", "PNG", quality=95)
+    print(f"Banner successfully created at {BANNER_PATH} and {DOCS_IMAGES_DIR / 'pr0-presentation-banner.png'}")
 
 if __name__ == "__main__":
     create_poster()
