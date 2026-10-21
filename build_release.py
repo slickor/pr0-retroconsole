@@ -75,9 +75,20 @@ def build_release(output_dir: Path | None = None) -> tuple[Path, Path]:
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
     )
 
-    # 4. Copy assets/
+    # 4. Copy assets/ (ignore promotional/presentation graphics)
     if (PROJECT_ROOT / "assets").is_dir():
-        shutil.copytree(PROJECT_ROOT / "assets", staging_app / "assets")
+        shutil.copytree(
+            PROJECT_ROOT / "assets",
+            staging_app / "assets",
+            ignore=shutil.ignore_patterns(
+                "__pycache__",
+                "*.pyc",
+                "*.pyo",
+                "*presentation*",
+                "*.psd",
+                "*.ai",
+            ),
+        )
 
     # 5. Copy & clean libs/
     staging_libs = staging_app / "libs"

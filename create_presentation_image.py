@@ -6,12 +6,20 @@ Creates:
 
 from __future__ import annotations
 import os
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
+# Ensure project root is in sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.version import VERSION
+
 # Paths
 SOURCE_RENDER = Path(r"C:\Users\Philipp\.gemini\antigravity\brain\d316afdf-bb51-41fd-aaae-10a6f05e5073\r36s_trimui_pr0gramm_consoles_1792434684236.jpg")
-OUTPUT_DIR = Path(r"C:\Coding\pr0-retroconsole")
+OUTPUT_DIR = PROJECT_ROOT
 POSTER_PATH = OUTPUT_DIR / "pr0-presentation-poster.png"
 BANNER_PATH = OUTPUT_DIR / "pr0-presentation-banner.png"
 
@@ -62,14 +70,33 @@ def get_font(name: str, size: int) -> ImageFont.FreeTypeFont:
                 pass
     return ImageFont.load_default()
 
-def draw_pill(draw: ImageDraw.ImageDraw, x: int, y: int, text: str, font: ImageFont.FreeTypeFont, 
-              bg_color: tuple, text_color: tuple, border_color: tuple = None, pad_x: int = 14, pad_y: int = 6):
+def draw_pill(
+    draw: ImageDraw.ImageDraw,
+    x: int | None,
+    y: int,
+    text: str,
+    font: ImageFont.FreeTypeFont,
+    bg_color: tuple,
+    text_color: tuple,
+    border_color: tuple = None,
+    pad_x: int = 14,
+    pad_y: int = 6,
+    right_x: int | None = None,
+) -> tuple[int, int]:
+    """Draw a rounded badge/pill with optional right-alignment (right_x) to prevent boundary overflow."""
     bbox = font.getbbox(text)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     pw = tw + pad_x * 2
     ph = th + pad_y * 2
-    draw.rounded_rectangle((x, y, x + pw, y + ph), radius=ph // 2, fill=bg_color, outline=border_color, width=1 if border_color else 0)
-    draw.text((x + pad_x, y + pad_y - bbox[1]), text, font=font, fill=text_color)
+    draw_x = (right_x - pw) if right_x is not None else (x if x is not None else 0)
+    draw.rounded_rectangle(
+        (draw_x, y, draw_x + pw, y + ph),
+        radius=ph // 2,
+        fill=bg_color,
+        outline=border_color,
+        width=1 if border_color else 0,
+    )
+    draw.text((draw_x + pad_x, y + pad_y - bbox[1]), text, font=font, fill=text_color)
     return pw, ph
 
 def create_poster():
@@ -108,8 +135,8 @@ def create_poster():
     # Badges
     p1_w, p1_h = draw_pill(draw, 70, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
     p2_w, p2_h = draw_pill(draw, 70 + p1_w + 12, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
-    p3_w, p3_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12, curr_y, "RELEASE v0.3.2", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
-    draw_pill(draw, W - 70 - 190, curr_y, "100% OPEN SOURCE", font_badge, (30, 30, 35, 255), COLOR_TEXT_GRAY, (60, 60, 70, 255))
+    p3_w, p3_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12, curr_y, f"RELEASE v{VERSION}", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
+    draw_pill(draw, None, curr_y, "100% OPEN SOURCE", font_badge, (30, 30, 35, 255), COLOR_TEXT_GRAY, (60, 60, 70, 255), right_x=W - 70)
 
     curr_y += 55
 
@@ -160,8 +187,8 @@ def create_poster():
         draw_pill(draw, render_x + 35, render_y + 35, "R36S  •  3.5\" 4:3  •  ArkOS", font_badge, 
                   (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=16, pad_y=8)
         # Label 2: TrimUI Smart Pro
-        draw_pill(draw, render_x + target_rw - 370, render_y + 35, "TrimUI Smart Pro  •  5.0\" 16:9  •  CrossMix-OS", font_badge, 
-                  (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=16, pad_y=8)
+        draw_pill(draw, None, render_y + 35, "TrimUI Smart Pro  •  5.0\" 16:9  •  CrossMix-OS", font_badge, 
+                  (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=16, pad_y=8, right_x=render_x + target_rw - 35)
 
         curr_y += target_rh + 45
 
@@ -266,8 +293,8 @@ def create_poster():
         # Title
         draw.text((cx + 70, cy + 18), card["title"], font=font_card_title, fill=COLOR_TEXT_WHITE)
 
-        # Tag
-        draw_pill(draw, cx + col_w - 150, cy + 16, card["tag"], font_mono, (35, 35, 42, 255), COLOR_ORANGE, pad_x=10, pad_y=4)
+        # Tag (aligned 20px from right card border to prevent overflow)
+        draw_pill(draw, None, cy + 16, card["tag"], font_mono, (35, 35, 42, 255), COLOR_ORANGE, pad_x=10, pad_y=4, right_x=cx + col_w - 20)
 
         # Bullet Points
         py = cy + 62
@@ -293,10 +320,10 @@ def create_poster():
     # Orange highlight indicator on left
     draw.rounded_rectangle((70, footer_y, 76, footer_y + footer_h), radius=3, fill=COLOR_ORANGE)
 
-    draw.text((100, footer_y + 22), "Open Source auf GitHub • PortMaster Release v0.3.2", font=font_card_title, fill=COLOR_TEXT_WHITE)
+    draw.text((100, footer_y + 22), f"Open Source auf GitHub • PortMaster Release v{VERSION}", font=font_card_title, fill=COLOR_TEXT_WHITE)
     draw.text((100, footer_y + 58), "Entwickelt für die Fliesentisch-Elite • Benis, Feedback & Pull Requests willkommen!", font=font_footer, fill=COLOR_TEXT_GRAY)
 
-    draw_pill(draw, W - 70 - 240, footer_y + 30, "JETZT TESTEN >>", font_badge, COLOR_ORANGE, (255, 255, 255, 255), pad_x=22, pad_y=12)
+    draw_pill(draw, None, footer_y + 30, "JETZT TESTEN >>", font_badge, COLOR_ORANGE, (255, 255, 255, 255), pad_x=22, pad_y=12, right_x=W - 70 - 30)
 
     im.save(POSTER_PATH, "PNG", quality=95)
     print(f"Poster successfully created at {POSTER_PATH}")
@@ -328,7 +355,7 @@ def create_banner():
     curr_y = 70
     p1_w, p1_h = draw_pill(draw, 75, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
     p2_w, p2_h = draw_pill(draw, 75 + p1_w + 14, curr_y, "CROSSMIX-OS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
-    draw_pill(draw, 75 + p1_w + 14 + p2_w + 14, curr_y, "v0.3.2 RELEASE", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
+    draw_pill(draw, 75 + p1_w + 14 + p2_w + 14, curr_y, f"v{VERSION} RELEASE", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
 
     curr_y += 65
     # Logo + Title
@@ -383,7 +410,7 @@ def create_banner():
 
         # Labels
         draw_pill(draw, rx + 25, ry + 25, "R36S (ArkOS)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6)
-        draw_pill(draw, rx + target_rw - 260, ry + 25, "TrimUI Smart Pro (CrossMix)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6)
+        draw_pill(draw, None, ry + 25, "TrimUI Smart Pro (CrossMix)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6, right_x=rx + target_rw - 25)
 
         # Bottom card under render
         card_y = ry + target_rh + 35
@@ -393,7 +420,7 @@ def create_banner():
         draw.rounded_rectangle((rx, card_y, rx + card_w, card_y + 4), radius=2, fill=COLOR_ORANGE)
 
         draw.text((rx + 30, card_y + 25), "Bereit für die Hosentasche?", font=font_item_title, fill=COLOR_TEXT_WHITE)
-        draw.text((rx + 30, card_y + 65), "Das Release v0.3.2 bringt perfekten Videosound, 60 FPS ohne Frame-Jumps,", font=font_item_desc, fill=COLOR_TEXT_GRAY)
+        draw.text((rx + 30, card_y + 65), f"Das Release v{VERSION} bringt perfekten Videosound, 60 FPS ohne Frame-Jumps,", font=font_item_desc, fill=COLOR_TEXT_GRAY)
         draw.text((rx + 30, card_y + 95), "die originalgetreue pr0.app Navigationsleiste und QR-Code Login.", font=font_item_desc, fill=COLOR_TEXT_GRAY)
         draw.text((rx + 30, card_y + 135), "Feedback, Benis & Pull Requests auf GitHub jederzeit willkommen!", font=font_item_desc, fill=COLOR_ORANGE)
 
