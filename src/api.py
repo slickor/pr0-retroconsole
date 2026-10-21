@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import urllib.parse
 from typing import Any
 import requests
@@ -70,40 +71,125 @@ def parse_me_cookie(me_cookie: str | None) -> tuple[str | None, str | None]:
     return None, None
 
 
+def clean_cookie_val(val: str | None, prefix: str = "") -> str:
+    """Strip whitespace and optional cookie key prefix (e.g. 'me=' or 'av=')."""
+    if not val:
+        return ""
+    v = val.strip()
+    if prefix and v.startswith(prefix):
+        v = v[len(prefix):].strip()
+    return v
+
+
 class Pr0API:
     """REST API Client for pr0gramm (pr0.app)."""
 
-    def __init__(self, me_cookie: str | None = None, timeout: float = 10.0):
+    def __init__(
+        self,
+        me_cookie: str | None = None,
+        av_cookie: str | None = None,
+        timeout: float = 10.0,
+    ):
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT})
 
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
         self.username, self.nonce = parse_me_cookie(me_cookie)
 
         if self.me_cookie:
-            # Clean cookie value
-            clean_cookie = self.me_cookie.strip()
-            if clean_cookie.startswith("me="):
-                clean_cookie = clean_cookie[3:]
-            self.session.cookies.set("me", clean_cookie, domain="pr0.app")
+            clean_me = clean_cookie_val(self.me_cookie, "me=")
+            self.session.cookies.set("me", clean_me, domain="pr0.app")
+            self.session.cookies.set("me", clean_me, domain="pr0gramm.com")
+            if self.av_cookie:
+                clean_av = clean_cookie_val(self.av_cookie, "av=")
+                self.session.cookies.set("av", clean_av, domain="pr0.app")
+                self.session.cookies.set("av", clean_av, domain="pr0gramm.com")
+            # Automatically synchronize session to obtain latest av cookie
+            self.sync_user_session()
 
-    def update_cookie(self, me_cookie: str | None) -> None:
+    def sync_user_session(self) -> dict[str, Any]:
+        """Synchronize user session with pr0gramm API.
+
+        Fetches user info and extracts the essential 'av' (age-verification) cookie
+        required by CDN servers for accessing NSFW and NSFL media (videos & images).
+        """
+        if not self.me_cookie:
+            self.av_cookie = None
+            return {}
+
+        clean_me = clean_cookie_val(self.me_cookie, "me=")
+        self.session.cookies.set("me", clean_me, domain="pr0.app")
+        self.session.cookies.set("me", clean_me, domain="pr0gramm.com")
+
+        for endpoint in (f"{API_BASE}/user/me", "https://pr0gramm.com/api/user/me"):
+            try:
+                resp = self.session.get(endpoint, timeout=min(5.0, self.timeout))
+                if resp.status_code == 200:
+                    # Look for av cookie in response cookies
+                    av_found = resp.cookies.get("av") or self.session.cookies.get("av")
+                    if not av_found and "set-cookie" in resp.headers:
+                        m = re.search(r'\bav=([^;,\s]+)', resp.headers["set-cookie"])
+                        if m:
+                            av_found = m.group(1)
+                    if av_found:
+                        self.av_cookie = clean_cookie_val(av_found, "av=")
+                        self.session.cookies.set("av", self.av_cookie, domain="pr0.app")
+                        self.session.cookies.set("av", self.av_cookie, domain="pr0gramm.com")
+                        logger.info("Retrieved age-verification (av) cookie for NSFW/NSFL media")
+
+                    # Check for updated me cookie from server
+                    me_new = resp.cookies.get("me")
+                    if me_new:
+                        self.me_cookie = clean_cookie_val(me_new, "me=")
+                        self.username, self.nonce = parse_me_cookie(self.me_cookie)
+
+                    return resp.json()
+            except Exception as e:
+                logger.debug("Failed session sync with %s: %s", endpoint, e)
+
+        return {}
+
+    def update_cookie(self, me_cookie: str | None, av_cookie: str | None = None) -> None:
         """Update active me-cookie and credentials."""
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
         self.username, self.nonce = parse_me_cookie(me_cookie)
         if self.me_cookie:
-            clean_cookie = self.me_cookie.strip()
-            if clean_cookie.startswith("me="):
-                clean_cookie = clean_cookie[3:]
-            self.session.cookies.set("me", clean_cookie, domain="pr0.app")
+            clean_me = clean_cookie_val(self.me_cookie, "me=")
+            self.session.cookies.set("me", clean_me, domain="pr0.app")
+            self.session.cookies.set("me", clean_me, domain="pr0gramm.com")
+            if self.av_cookie:
+                clean_av = clean_cookie_val(self.av_cookie, "av=")
+                self.session.cookies.set("av", clean_av, domain="pr0.app")
+                self.session.cookies.set("av", clean_av, domain="pr0gramm.com")
+            self.sync_user_session()
         else:
             self.session.cookies.clear()
+
+    def get_cookie_header(self) -> str:
+        """Build RFC 6265 Cookie header string containing me and av cookies."""
+        parts = []
+        if self.me_cookie:
+            c = clean_cookie_val(self.me_cookie, "me=")
+            if c:
+                parts.append(f"me={c}")
+        if self.av_cookie:
+            a = clean_cookie_val(self.av_cookie, "av=")
+            if a:
+                parts.append(f"av={a}")
+        return "; ".join(parts)
 
     @property
     def is_authenticated(self) -> bool:
         """Returns True if a valid user session / nonce is configured."""
         return bool(self.nonce and self.username)
+
+    @property
+    def is_age_verified(self) -> bool:
+        """Returns True if age-verification cookie is available for NSFW/NSFL media."""
+        return bool(self.av_cookie)
 
     def get_items(
         self,

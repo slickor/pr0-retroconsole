@@ -84,6 +84,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "promoted": 1,
     "flags": 1,
     "me_cookie": "",
+    "av_cookie": "",
     "cache_dir": "/tmp/pr0cache",
     "max_cache_files": 100,
     "button_layout": "auto",
@@ -165,11 +166,19 @@ class Pr0App:
 
         # Core subsystems
         self.me_cookie = str(self.config.get("me_cookie", ""))
-        self.api = Pr0API(me_cookie=self.me_cookie)
+        self.av_cookie = str(self.config.get("av_cookie", ""))
+        self.api = Pr0API(me_cookie=self.me_cookie, av_cookie=self.av_cookie)
+        if self.api.av_cookie:
+            self.av_cookie = self.api.av_cookie
+            if self.config.get("av_cookie") != self.av_cookie:
+                self.config["av_cookie"] = self.av_cookie
+                save_config(self.config, self.config_path)
+
         self.cache = MediaCache(
             cache_dir=self.config.get("cache_dir", "/tmp/pr0cache"),
             max_files=self.config.get("max_cache_files", 100),
             me_cookie=self.me_cookie,
+            av_cookie=self.av_cookie,
         )
         preferred_player = self.config.get("video_player") or self.config.get("video_player_path")
         self.button_layout = str(self.config.get("button_layout", "auto"))
@@ -177,12 +186,14 @@ class Pr0App:
             preferred_player=preferred_player,
             button_layout=self.button_layout,
             me_cookie=self.me_cookie,
+            av_cookie=self.av_cookie,
         )
         self.autoplay_audio = bool(self.config.get("autoplay_audio", True))
         self.inline_player = InlineVideoPlayer(
             video_player=self.video,
             enable_audio=self.autoplay_audio,
             me_cookie=self.me_cookie,
+            av_cookie=self.av_cookie,
         )
         self.input_mgr = InputManager(axis_threshold=0.45, layout=self.button_layout)
 
@@ -382,6 +393,9 @@ class Pr0App:
         if self.state == STATE_POST and self.items and self.autoplay_video:
             item = self.items[self.selected_idx]
             if Pr0API.is_video(item):
+                is_nsfw = bool(item.get("flags", 1) & (FLAG_NSFW | FLAG_NSFL))
+                if is_nsfw and not self.api.is_age_verified and not self.av_cookie:
+                    self.set_toast("NSFW: Altersverifikation auf pr0gramm.com nötig!", COLOR_RED, duration=3.0)
                 media_url = Pr0API.get_media_url(item)
                 local_path = self.cache.get_local_path(media_url)
                 stream_target = local_path if local_path else media_url
@@ -866,6 +880,9 @@ class Pr0App:
         # 3. Actions: Play Video in external player (Fullscreen/Audio), Vote, Return to Grid
         elif action == ACTION_SELECT:
             if Pr0API.is_video(item):
+                is_nsfw = bool(item.get("flags", 1) & (FLAG_NSFW | FLAG_NSFL))
+                if is_nsfw and not self.api.is_age_verified and not self.av_cookie:
+                    self.set_toast("NSFW: Altersverifikation auf pr0gramm.com nötig!", COLOR_RED, duration=3.0)
                 media_url = Pr0API.get_media_url(item)
                 local_path = self.cache.get_local_path(media_url)
                 if not self.autoplay_video and not self.inline_player._running:
@@ -1139,10 +1156,12 @@ class Pr0App:
                 if self.api.is_authenticated:
                     self.api.logout()
                     self.config["me_cookie"] = ""
+                    self.config["av_cookie"] = ""
                     self.me_cookie = ""
-                    self.cache.set_cookie("")
-                    self.video.set_cookie("")
-                    self.inline_player.set_cookie("")
+                    self.av_cookie = ""
+                    self.cache.set_cookie("", "")
+                    self.video.set_cookie("", "")
+                    self.inline_player.set_cookie("", "")
                     save_config(self.config, self.config_path)
                     self.set_toast("Erfolgreich abgemeldet.", COLOR_RED, duration=2.0)
                 else:
@@ -1438,11 +1457,13 @@ class Pr0App:
                 self.login_success_pending = None
                 self.config["me_cookie"] = cookie
                 self.me_cookie = cookie
-                self.cache.set_cookie(cookie)
-                self.video.set_cookie(cookie)
-                self.inline_player.set_cookie(cookie)
-                save_config(self.config, self.config_path)
                 self.api.update_cookie(cookie)
+                self.av_cookie = self.api.av_cookie or ""
+                self.config["av_cookie"] = self.av_cookie
+                self.cache.set_cookie(self.me_cookie, self.av_cookie)
+                self.video.set_cookie(self.me_cookie, self.av_cookie)
+                self.inline_player.set_cookie(self.me_cookie, self.av_cookie)
+                save_config(self.config, self.config_path)
                 self._stop_login_flow()
                 self.set_toast(f"Eingeloggt als {uname}!", COLOR_GREEN, duration=3.0)
                 self.state = STATE_GRID

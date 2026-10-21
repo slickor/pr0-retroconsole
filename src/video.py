@@ -86,6 +86,24 @@ def get_handheld_env(binary_path: str | None = None) -> dict[str, str]:
     return env
 
 
+def build_cookie_header(me_cookie: str | None, av_cookie: str | None = None) -> str:
+    """Build RFC 6265 Cookie header string containing me and av cookies."""
+    parts = []
+    if me_cookie:
+        c = me_cookie.strip()
+        if c.startswith("me="):
+            c = c[3:].strip()
+        if c:
+            parts.append(f"me={c}")
+    if av_cookie:
+        a = av_cookie.strip()
+        if a.startswith("av="):
+            a = a[3:].strip()
+        if a:
+            parts.append(f"av={a}")
+    return "; ".join(parts)
+
+
 class InlineVideoPlayer:
     """Decodes video frames in a background thread for direct embedded playback in Pygame,
     with an accompanying background audio stream for sound in post-view.
@@ -97,11 +115,13 @@ class InlineVideoPlayer:
         video_player: VideoPlayer | None = None,
         enable_audio: bool = True,
         me_cookie: str | None = None,
+        av_cookie: str | None = None,
     ):
         self.preferred_ffmpeg = preferred_ffmpeg
         self.video_player = video_player
         self.enable_audio = enable_audio
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
         self.system = platform.system()
         self.ffmpeg_bin = self._find_ffmpeg()
 
@@ -113,9 +133,10 @@ class InlineVideoPlayer:
         self._lock = threading.Lock()
         self._active_url: str | None = None
 
-    def set_cookie(self, me_cookie: str | None) -> None:
-        """Update authentication cookie for media streaming."""
+    def set_cookie(self, me_cookie: str | None, av_cookie: str | None = None) -> None:
+        """Update authentication and age-verification cookies for media streaming."""
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
 
         logger.info(
             "InlineVideoPlayer init: ffmpeg=%s, audio_enabled=%s",
@@ -195,6 +216,7 @@ class InlineVideoPlayer:
             logger.debug("No video player available for inline audio companion")
             return
 
+        cookie_hdr = build_cookie_header(self.me_cookie, self.av_cookie)
         cmd: list[str] = []
         if player.player_type == "mpv":
             cmd = [
@@ -207,8 +229,8 @@ class InlineVideoPlayer:
             ]
             if player.is_handheld:
                 cmd.extend(["--ao=alsa,oss,sdl"])
-            if self.me_cookie and url.startswith("http"):
-                cmd.extend([f"--http-header-fields=Cookie: me={self.me_cookie}"])
+            if cookie_hdr and url.startswith("http"):
+                cmd.extend([f"--http-header-fields=Cookie: {cookie_hdr}"])
             cmd.append(url)
         elif player.player_type == "ffplay":
             cmd = [
@@ -217,8 +239,8 @@ class InlineVideoPlayer:
                 "-loop", "0",
                 "-loglevel", "quiet",
             ]
-            if self.me_cookie and url.startswith("http"):
-                cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+            if cookie_hdr and url.startswith("http"):
+                cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
             cmd.append(url)
         elif player.player_type == "vlc":
             cmd = [
@@ -295,8 +317,9 @@ class InlineVideoPlayer:
             self.ffmpeg_bin,
             "-loglevel", "error",
         ]
-        if self.me_cookie and url.startswith("http"):
-            cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+        cookie_hdr = build_cookie_header(self.me_cookie, self.av_cookie)
+        if cookie_hdr and url.startswith("http"):
+            cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
 
         if is_local:
             cmd.extend(["-re", "-stream_loop", "-1"])
@@ -390,10 +413,12 @@ class VideoPlayer:
         preferred_player: str | None = None,
         button_layout: str = "standard",
         me_cookie: str | None = None,
+        av_cookie: str | None = None,
     ):
         self.preferred_player = preferred_player
         self.button_layout = button_layout
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
         self.system = platform.system()
         self.machine = platform.machine().lower()
 
@@ -404,9 +429,10 @@ class VideoPlayer:
 
         self.input_conf_path = self._ensure_input_conf()
 
-    def set_cookie(self, me_cookie: str | None) -> None:
-        """Update authentication cookie."""
+    def set_cookie(self, me_cookie: str | None, av_cookie: str | None = None) -> None:
+        """Update authentication and age-verification cookies."""
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
 
         logger.info(
             "VideoPlayer init: system=%s, machine=%s, is_handheld=%s, type=%s, path=%s",
@@ -579,6 +605,7 @@ class VideoPlayer:
             return False
 
         cmd: list[str] = []
+        cookie_hdr = build_cookie_header(self.me_cookie, self.av_cookie)
 
         if self.player_type == "mpv":
             conf_arg = f"--input-conf={self.input_conf_path}"
@@ -612,8 +639,10 @@ class VideoPlayer:
                     "--input-gamepad=yes",
                     "--really-quiet",
                     conf_arg,
-                    media_url,
                 ]
+                if cookie_hdr and media_url.startswith("http"):
+                    cmd.append(f"--http-header-fields=Cookie: {cookie_hdr}")
+                cmd.append(media_url)
             else:
                 # Windowed desktop/macOS/Windows playback sized to active display resolution
                 cmd = [
@@ -625,8 +654,10 @@ class VideoPlayer:
                     "--input-gamepad=yes",
                     "--really-quiet",
                     conf_arg,
-                    media_url,
                 ]
+                if cookie_hdr and media_url.startswith("http"):
+                    cmd.append(f"--http-header-fields=Cookie: {cookie_hdr}")
+                cmd.append(media_url)
         elif self.player_type == "ffplay":
             if self.is_handheld:
                 try:
@@ -648,8 +679,8 @@ class VideoPlayer:
                     "-loglevel",
                     "error",
                 ]
-                if self.me_cookie and media_url.startswith("http"):
-                    cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+                if cookie_hdr and media_url.startswith("http"):
+                    cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
                 cmd.append(media_url)
             else:
                 cmd = [
@@ -664,8 +695,8 @@ class VideoPlayer:
                     "-window_title",
                     "pr0 video",
                 ]
-                if self.me_cookie and media_url.startswith("http"):
-                    cmd.extend(["-headers", f"Cookie: me={self.me_cookie}\r\n"])
+                if cookie_hdr and media_url.startswith("http"):
+                    cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
                 cmd.append(media_url)
         elif self.player_type == "vlc":
             if self.is_handheld:

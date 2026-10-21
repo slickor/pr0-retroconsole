@@ -36,10 +36,12 @@ class MediaCache:
         max_files: int = 100,
         max_memory_surfaces: int = 80,
         me_cookie: str | None = None,
+        av_cookie: str | None = None,
     ):
         self.max_files = max_files
         self.max_memory_surfaces = max_memory_surfaces
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
         self.cache_dir = self._resolve_cache_dir(cache_dir)
         logger.info("Using cache directory: %s", self.cache_dir)
 
@@ -65,9 +67,10 @@ class MediaCache:
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self._worker_thread.start()
 
-    def set_cookie(self, me_cookie: str | None) -> None:
-        """Update authentication cookie for media downloads."""
+    def set_cookie(self, me_cookie: str | None, av_cookie: str | None = None) -> None:
+        """Update authentication and age-verification cookies for media downloads."""
         self.me_cookie = me_cookie
+        self.av_cookie = av_cookie
 
     def _resolve_cache_dir(self, preferred_path: str) -> Path:
         """Resolve a writable cache directory, falling back from /tmp to local tempdir."""
@@ -191,8 +194,25 @@ class MediaCache:
 
             if not local_path.is_file() or local_path.stat().st_size == 0:
                 try:
+                    cookie_parts = []
                     if self.me_cookie:
-                        session.cookies.set("me", self.me_cookie)
+                        c = self.me_cookie.strip()
+                        if c.startswith("me="):
+                            c = c[3:].strip()
+                        if c:
+                            cookie_parts.append(f"me={c}")
+                    if self.av_cookie:
+                        a = self.av_cookie.strip()
+                        if a.startswith("av="):
+                            a = a[3:].strip()
+                        if a:
+                            cookie_parts.append(f"av={a}")
+
+                    if cookie_parts:
+                        session.headers["Cookie"] = "; ".join(cookie_parts)
+                    elif "Cookie" in session.headers:
+                        del session.headers["Cookie"]
+
                     resp = session.get(url, timeout=12.0)
                     if resp.status_code == 200 and resp.content:
                         part_file = local_path.with_suffix(".part")
@@ -204,7 +224,7 @@ class MediaCache:
                         success = True
                         self._clean_cache_if_needed()
                     elif resp.status_code == 403:
-                        logger.warning("Download forbidden (403 age-verification) for %s - check login cookie", url)
+                        logger.warning("Download forbidden (403 age-verification) for %s - check login / av cookie", url)
                 except Exception as e:
                     logger.debug("Download failed for %s: %s", url, e)
 

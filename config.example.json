@@ -11,6 +11,7 @@
   "promoted": 1,
   "flags": 1,
   "me_cookie": "",
+  "av_cookie": "",
   "cache_dir": "/tmp/pr0cache",
   "max_cache_files": 100,
   "button_layout": "auto",

@@ -7,6 +7,17 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.14] - 2026-10-21
+
+### Behoben
+- **NSFW/NSFL-Video- und Bildwiedergabe repariert (Altersverifikations-Cookie `av`):**
+  - **Ursache im Log identifiziert:** pr0gramm CDN verlangt für alle jugendgeschützten Inhalte (NSFW/NSFL-Videos auf `vid.pr0.app` und Vorschaubilder auf `thumb.pr0gramm.com`) neben dem Anmelde-Cookie (`me`) zwingend ein dynamisches Altersverifikations-Cookie (`av`). Fehlt dieses, blockiert der CDN-Server jegliche Wiedergabe mit `403 age-verification-required` (`X-Age-Gate: denied`).
+  - **Automatische Sitzungssynchronisation (`sync_user_session`):** Die App ruft beim Start und nach jeder Anmeldung automatisch `/api/user/me` ab und extrahiert das `av`-Token. Der Nutzer muss kein zusätzliches Cookie manuell eingeben.
+  - **Multi-Domain Cookie-Dispatch:** Das `av`-Cookie wird domainspezifisch und RFC-konform sowohl an `pr0.app` als auch an `pr0gramm.com` gebunden und nahtlos an den Download-Cache (`MediaCache`), `InlineVideoPlayer` (FFmpeg-Streamer & Audio) sowie den Vollbild-Player (`ffplay` / `mpv`) übermittelt.
+  - **Präzises Benutzer-Feedback:** Sollte ein Account auf pr0gramm noch nicht altersverifiziert sein, wird beim Aufrufen von NSFW-Beiträgen ein entsprechender Toast-Hinweis eingeblendet (`Altersverifikation auf pr0gramm.com nötig!`).
+
+---
+
 ## [0.3.13] - 2026-10-21
 
 ### Behoben
