@@ -276,6 +276,65 @@ class Pr0API:
             logger.error("Error voting on item %d: %s", item_id, e)
             return {"success": False, "error": str(e)}
 
+    def vote_comment(self, comment_id: int, vote_val: int) -> dict[str, Any]:
+        """Vote on a comment: 1 (Upvote / Blussi), -1 (Downvote), 0 (Neutralize).
+
+        Requires authentication (nonce).
+        """
+        if not self.nonce:
+            return {
+                "success": False,
+                "error": "Login erforderlich! 'me_cookie' in config.json fehlt.",
+            }
+
+        url = f"{API_BASE}/comments/vote"
+        data = {
+            "id": int(comment_id),
+            "vote": int(vote_val),
+            "_nonce": self.nonce,
+        }
+        try:
+            resp = self.session.post(url, data=data, timeout=self.timeout)
+            resp.raise_for_status()
+            result = resp.json()
+            return {"success": True, "result": result, "error": None}
+        except Exception as e:
+            logger.error("Error voting on comment %d: %s", comment_id, e)
+            return {"success": False, "error": str(e)}
+
+    def post_comment(self, item_id: int, parent_id: int, text: str) -> dict[str, Any]:
+        """Post a comment or reply to an existing comment.
+
+        :param item_id: ID of the post
+        :param parent_id: ID of parent comment (0 for top-level comment)
+        :param text: Text content of the comment
+        """
+        if not self.nonce:
+            return {
+                "success": False,
+                "error": "Login erforderlich! 'me_cookie' in config.json fehlt.",
+            }
+
+        text = text.strip()
+        if not text:
+            return {"success": False, "error": "Kommentar darf nicht leer sein."}
+
+        url = f"{API_BASE}/comments/post"
+        data = {
+            "itemId": int(item_id),
+            "parentId": int(parent_id),
+            "comment": text,
+            "_nonce": self.nonce,
+        }
+        try:
+            resp = self.session.post(url, data=data, timeout=self.timeout)
+            resp.raise_for_status()
+            result = resp.json()
+            return {"success": True, "result": result, "error": None}
+        except Exception as e:
+            logger.error("Error posting comment on item %d: %s", item_id, e)
+            return {"success": False, "error": str(e)}
+
     @staticmethod
     def is_video(item: dict[str, Any]) -> bool:
         """Check if an item is a video (.mp4 or .webm)."""

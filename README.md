@@ -62,16 +62,29 @@ Die Bedienung ist komplett auf Gamepads optimiert und funktioniert auf Handhelds
 
 | Taste (Handheld) | PC / Tastatur | Kachelgitter (Grid-View) | Header-Filterleiste (▲ in Zeile 0) | Beitragsansicht (Post & Kommentare) | Vollbild-Player (`mpv`/`ffplay`) |
 |---|---|---|---|---|---|
-| **D-Pad ◄ / ►** | `◄` / `►` | Kachel auswählen | Modus / Flag wählen (`neu`, `sfw`, `nsfw` ...) | Vorheriger / Nächster Post | 10s Vor- / Zurückspulen |
-| **D-Pad ▲ / ▼** | `▲` / `▼` | Zeilen wechseln (**▲ in Zeile 0 öffnet Header**) | **▼ kehrt ins Grid zurück** | Kontinuierlich scrollen (Bild ➔ Tags ➔ Kommentare) | - |
-| **Rechter Stick ▲ / ▼** | `W` / `S` | Turbo-Scrollen im Raster | - | Turbo-Scrollen im Kommentarbaum | Lautstärke |
-| **A** | `Enter` / `Leertaste` | Post öffnen | Gewähltes Flag an- / abwählen (Einzelschaltung) | Vollbild-Video öffnen | Pause / Weiter |
+| **D-Pad ◄ / ►** | `◄` / `►` | Kachel auswählen | Modus / Flag wählen (`neu`, `sfw`, `nsfw` ...) | Vorheriger / Nächster Post | 10% Vor- / Zurückspulen |
+| **D-Pad ▲ / ▼** | `▲` / `▼` | Zeilen wechseln (**▲ in Zeile 0 öffnet Header**) | **▼ kehrt ins Grid zurück** | Fokus wechseln (Medium ➔ Neuer Kommentar ➔ Kommentare) mit Auto-Scroll | - |
+| **Rechter Stick ▲ / ▼** | `W` / `S` | Turbo-Scrollen im Raster | - | Freies Scrollen im Beitrag | Lautstärke |
+| **A** | `Enter` / `Leertaste` | Post öffnen | Gewähltes Flag an- / abwählen (Einzelschaltung) | **Aktion ausführen:**<br>• Auf Medium: Vollbild-Video<br>• Auf Button: Neuer Kommentar<br>• Auf Kommentar: **Aktions-Popup** (*Antworten, +1, -1*) | Pause / Weiter |
 | **B** | `Esc` / `Backspace` / `Q` | App beenden (mit Bestätigung) | Zurück ins Kachelgitter | Zurück zum Kachelgitter | Vollbild beenden / Zurück |
 | **START** | `F1` / `F2` / `P` | **Einstellungen öffnen** | **Einstellungen öffnen** | **Einstellungen öffnen** | - |
-| **Y** | `Tab` / `Y` | - | **Solo-Filter** (ausschließlich gewähltes Flag aktivieren) | - | - |
+| **Y** | `Tab` / `Y` | - | **Solo-Filter** (ausschließlich gewähltes Flag aktivieren) | Upvote (**+1 Blussi**) auf Post oder fokussierten Kommentar | - |
+| **X** | `I` / `X` | - | - | Downvote (**-1**) auf Post oder fokussierten Kommentar | - |
 | **L2 / R2** | `T` | **Beliebt 🔁 Neu** | Modus umschalten | - | - |
 | **R1** | `+` / `=` / `R` | Schnell-Filter vorwärts (`SFW` ➔ `Nur NSFW` ➔ `SFW+NSFW` ...) | - | Upvote (**+1 Blussi**) vergeben | - |
 | **L1** | `-` / `E` | Schnell-Filter rückwärts | - | Downvote (**-1**) vergeben | - |
+
+---
+
+### 💬 Kommentare, Voting & Antworten
+
+- **Kommentar-Aktionsmenü:** Drücke `A` auf einem beliebigen Kommentar in der Beitragsansicht, um das Popup-Menü zu öffnen:
+  - **✎ Antworten:** Öffnet die virtuelle Bildschirmtastatur mit Empfänger `@autor`.
+  - **▲ +1 (Blussi):** Gibt dem Kommentar ein Upvote (auch direkt per `Y` oder `R1`).
+  - **▼ -1 (Downvote):** Gibt dem Kommentar ein Downvote (auch direkt per `X` oder `L1`).
+  - **✕ Abbrechen:** Schließt das Menü (`B`).
+- **Neuen Kommentar verfassen:** Direkt unter der Beitragsüberschrift befindet sich die Schaltfläche `[ ✎ Neuen Kommentar verfassen... ]`. Drücke dort `A`, um einen neuen Top-Level-Kommentar zu schreiben.
+- **Tippen:** Sowohl per D-Pad / Controller über die Bildschirmtastatur als auch mit angeschlossener USB-/PC-Tastatur möglich. Submit mit `[FERTIG]`, `START` oder `Enter`.
 
 ---
 

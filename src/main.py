@@ -259,6 +259,15 @@ class Pr0App:
         self.virtual_keyboard: VirtualKeyboard | None = None
         self.keyboard_target_field: str | None = None
 
+        # Comment Interaction & Navigation State
+        self.post_focus_idx: int = 0
+        self.post_focus_targets: dict[int, tuple[int, int]] = {}
+        self.comment_modal_open: bool = False
+        self.comment_modal_idx: int = 0
+        self.comment_modal_target: dict[str, Any] | None = None
+        self.comment_reply_parent_id: int | None = None
+        self.comment_reply_author: str | None = None
+
         self.login_status_msg: str | None = None
         self.login_status_color: tuple[int, int, int] | None = None
         self.login_success_pending: tuple[str, str] | None = None
@@ -388,6 +397,128 @@ class Pr0App:
         elif vote_val == -1:
             self.set_toast("-1 Downvote vergeben!", COLOR_RED, duration=1.8)
 
+    def cast_comment_vote(self, comment_id: int, vote_val: int) -> None:
+        """Cast comment upvote/downvote asynchronously with optimistic UI update."""
+        if not self.api.is_authenticated:
+            self.set_toast("Login erforderlich für Voting!", COLOR_RED, duration=2.5)
+            return
+
+        # Optimistically update in self.current_post_info["comments"]
+        for c in self.current_post_info.get("comments", []):
+            if c.get("id") == comment_id:
+                prev_vote = c.get("user_vote", 0)
+                if prev_vote == vote_val:
+                    # Neutralize vote
+                    new_vote = 0
+                    if vote_val == 1:
+                        c["up"] = max(0, c.get("up", 0) - 1)
+                    else:
+                        c["down"] = max(0, c.get("down", 0) - 1)
+                else:
+                    new_vote = vote_val
+                    if prev_vote == 1:
+                        c["up"] = max(0, c.get("up", 0) - 1)
+                    elif prev_vote == -1:
+                        c["down"] = max(0, c.get("down", 0) - 1)
+
+                    if vote_val == 1:
+                        c["up"] = c.get("up", 0) + 1
+                    elif vote_val == -1:
+                        c["down"] = c.get("down", 0) + 1
+
+                c["user_vote"] = new_vote
+                break
+
+        # Clear layout cache for this post so updated score is rendered immediately
+        if self.items and self.selected_idx < len(self.items):
+            post_id = self.items[self.selected_idx]["id"]
+            self.ui.clear_comment_cache(post_id)
+
+        if vote_val == 1:
+            self.set_toast("+1 Blussi vergeben!", COLOR_GREEN, duration=1.8)
+        elif vote_val == -1:
+            self.set_toast("-1 Downvote vergeben!", COLOR_RED, duration=1.8)
+
+        def do_vote_comment() -> dict[str, Any]:
+            return self.api.vote_comment(comment_id, vote_val)
+
+        self._start_background_task("vote_comment", do_vote_comment)
+
+    def _commit_comment_keyboard(self) -> None:
+        """Submit typed comment or reply to pr0gramm API."""
+        if not self.virtual_keyboard:
+            return
+
+        text = self.virtual_keyboard.text.strip()
+        parent_id = self.comment_reply_parent_id or 0
+        self.virtual_keyboard = None
+        self.comment_reply_parent_id = None
+        self.comment_reply_author = None
+
+        if not text:
+            self.set_toast("Kommentar darf nicht leer sein!", COLOR_RED, duration=2.0)
+            return
+
+        if not self.items or self.selected_idx >= len(self.items):
+            return
+
+        post_id = self.items[self.selected_idx]["id"]
+        self.set_toast("Sende Kommentar...", COLOR_ORANGE, duration=2.0)
+
+        def do_post_comment() -> dict[str, Any]:
+            res = self.api.post_comment(item_id=post_id, parent_id=parent_id, text=text)
+            return {"post_id": post_id, "res": res}
+
+        self._start_background_task("post_comment", do_post_comment)
+
+    def _handle_comment_modal_choice(self, choice_idx: int) -> None:
+        """Handle selected option in comment action modal."""
+        self.comment_modal_open = False
+        target = self.comment_modal_target
+        if not target:
+            return
+
+        comment_id = target.get("id", 0)
+        author = target.get("name", "unbekannt")
+
+        if choice_idx == 0:  # ✎ Antworten
+            if not self.api.is_authenticated:
+                self.set_toast("Login erforderlich zum Kommentieren!", COLOR_RED, duration=2.5)
+                return
+            self.comment_reply_parent_id = comment_id
+            self.comment_reply_author = author
+            self.virtual_keyboard = VirtualKeyboard(
+                title=f"Antwort an @{author}",
+                initial_text="",
+                is_password=False,
+                max_length=500,
+            )
+        elif choice_idx == 1:  # ▲ +1 (Blussi)
+            self.cast_comment_vote(comment_id, 1)
+        elif choice_idx == 2:  # ▼ -1 (Downvote)
+            self.cast_comment_vote(comment_id, -1)
+        elif choice_idx == 3:  # ✕ Abbrechen
+            pass
+
+    def _auto_scroll_post_focus(self) -> None:
+        """Adjust post_scroll_y smoothly to keep currently focused element within viewport."""
+        if self.post_focus_idx == 0:
+            self.post_scroll_y = 0
+            return
+
+        if self.post_focus_idx not in self.post_focus_targets:
+            return
+
+        target_y, target_h = self.post_focus_targets[self.post_focus_idx]
+        viewport_h = self.height - self.ui.header_height - self.ui.footer_height
+
+        # If target starts above visible area
+        if target_y < self.post_scroll_y + 10:
+            self.post_scroll_y = max(0, target_y - 20)
+        # If target extends below visible area
+        elif target_y + target_h > self.post_scroll_y + viewport_h - 10:
+            self.post_scroll_y = min(self.max_post_scroll, target_y + target_h - viewport_h + 30)
+
     def _update_inline_video(self) -> None:
         """Start inline video playback if current post is a video and autoplay is enabled."""
         if self.state == STATE_POST and self.items and self.autoplay_video:
@@ -422,25 +553,33 @@ class Pr0App:
 
         actions = self.input_mgr.poll_actions()
 
-        # Smooth continuous scrolling in post view when holding stick or direction
-        if self.state == STATE_POST:
-            cont_y = self.input_mgr.get_continuous_scroll_y()
-            if abs(cont_y) > 0.05:
+        # Smooth continuous scrolling in post view when holding analog stick
+        if self.state == STATE_POST and not self.virtual_keyboard and not self.comment_modal_open:
+            if abs(self.input_mgr.stick_ry) > self.input_mgr.axis_threshold or abs(self.input_mgr.stick_ly) > self.input_mgr.axis_threshold:
+                cont_y = self.input_mgr.stick_ry if abs(self.input_mgr.stick_ry) > self.input_mgr.axis_threshold else self.input_mgr.stick_ly
                 speed_factor = 0.28 if self.scroll_speed == "normal" else (0.45 if self.scroll_speed == "schnell" else 0.75)
                 scroll_delta = int(cont_y * self.scroll_step * speed_factor)
                 if scroll_delta != 0:
                     self.post_scroll_y = max(0, min(self.max_post_scroll, self.post_scroll_y + scroll_delta))
 
-        # Handle physical keyboard typing when in STATE_LOGIN and virtual keyboard is active
-        if self.state == STATE_LOGIN and self.virtual_keyboard:
+        # Handle physical keyboard typing when virtual keyboard is active
+        if self.virtual_keyboard:
             for k_ev in self.input_mgr.last_key_events:
                 res = self.virtual_keyboard.handle_physical_key(k_ev)
                 if res == "DONE":
-                    self._commit_keyboard()
+                    if self.state == STATE_LOGIN:
+                        self._commit_keyboard()
+                    elif self.state == STATE_POST:
+                        self._commit_comment_keyboard()
                     break
                 elif res == "CANCEL":
-                    self.virtual_keyboard = None
-                    self.keyboard_target_field = None
+                    if self.state == STATE_LOGIN:
+                        self.virtual_keyboard = None
+                        self.keyboard_target_field = None
+                    elif self.state == STATE_POST:
+                        self.virtual_keyboard = None
+                        self.comment_reply_parent_id = None
+                        self.comment_reply_author = None
                     break
 
         for action in actions:
@@ -775,6 +914,9 @@ class Pr0App:
             # Open selected post
             self.state = STATE_POST
             self.post_scroll_y = 0
+            self.post_focus_idx = 0
+            self.comment_modal_open = False
+            self.virtual_keyboard = None
             # Preload full image or video and fetch tags & comments
             item = self.items[self.selected_idx]
             self.cache.request_download(Pr0API.get_media_url(item), priority=0)
@@ -845,6 +987,33 @@ class Pr0App:
             self.state = STATE_GRID
             return
 
+        # Handle active comment VirtualKeyboard
+        if self.virtual_keyboard:
+            res = self.virtual_keyboard.handle_action(action)
+            if res == "DONE":
+                self._commit_comment_keyboard()
+            elif res == "CANCEL":
+                self.virtual_keyboard = None
+                self.comment_reply_parent_id = None
+                self.comment_reply_author = None
+            return
+
+        # Handle active Comment Modal
+        if self.comment_modal_open:
+            if action == ACTION_UP:
+                self.comment_modal_idx = (self.comment_modal_idx - 1) % 4
+            elif action == ACTION_DOWN:
+                self.comment_modal_idx = (self.comment_modal_idx + 1) % 4
+            elif action == ACTION_SELECT:
+                self._handle_comment_modal_choice(self.comment_modal_idx)
+            elif action in (ACTION_UPVOTE, ACTION_SOLO_FLAG):
+                self._handle_comment_modal_choice(1)
+            elif action in (ACTION_DOWNVOTE, ACTION_INFO):
+                self._handle_comment_modal_choice(2)
+            elif action == ACTION_BACK:
+                self.comment_modal_open = False
+            return
+
         item = self.items[self.selected_idx]
 
         # 1. Navigate between posts: Left (previous) / Right (next)
@@ -852,6 +1021,9 @@ class Pr0App:
             if self.selected_idx > 0:
                 self.selected_idx -= 1
                 self.post_scroll_y = 0
+                self.post_focus_idx = 0
+                self.comment_modal_open = False
+                self.virtual_keyboard = None
                 prev_item = self.items[self.selected_idx]
                 if not Pr0API.is_video(prev_item):
                     self.cache.request_download(Pr0API.get_media_url(prev_item), priority=0)
@@ -863,6 +1035,9 @@ class Pr0App:
             if self.selected_idx < len(self.items) - 1:
                 self.selected_idx += 1
                 self.post_scroll_y = 0
+                self.post_focus_idx = 0
+                self.comment_modal_open = False
+                self.virtual_keyboard = None
                 next_item = self.items[self.selected_idx]
                 if not Pr0API.is_video(next_item):
                     self.cache.request_download(Pr0API.get_media_url(next_item), priority=0)
@@ -873,46 +1048,112 @@ class Pr0App:
                     self.fetch_feed(append=True)
             return
 
-        # 2. Scroll actions are handled smoothly per-frame in handle_actions()
-        if action in (ACTION_UP, ACTION_DOWN, ACTION_SCROLL_UP, ACTION_SCROLL_DOWN):
+        # 2. Focus navigation between Media (0) -> New Comment (1) -> Comments (2..N+1)
+        comments = self.current_post_info.get("comments", [])
+        max_focus_idx = 1 + len(comments)
+
+        if action == ACTION_DOWN:
+            if self.post_focus_idx == 0:
+                target_h = self.post_focus_targets.get(0, (0, 0))[1]
+                viewport_h = self.height - self.ui.header_height - self.ui.footer_height
+                if target_h > viewport_h and self.post_scroll_y + viewport_h < target_h + 30:
+                    self.post_scroll_y = min(self.max_post_scroll, self.post_scroll_y + 120)
+                    return
+                else:
+                    self.post_focus_idx = min(self.post_focus_idx + 1, max_focus_idx)
+            else:
+                self.post_focus_idx = min(self.post_focus_idx + 1, max_focus_idx)
+
+            self._auto_scroll_post_focus()
             return
 
-        # 3. Actions: Play Video in external player (Fullscreen/Audio), Vote, Return to Grid
+        elif action == ACTION_UP:
+            if self.post_focus_idx == 0:
+                if self.post_scroll_y > 0:
+                    self.post_scroll_y = max(0, self.post_scroll_y - 120)
+                    return
+            else:
+                self.post_focus_idx = max(0, self.post_focus_idx - 1)
+
+            self._auto_scroll_post_focus()
+            return
+
+        # 3. Actions: Play Video in external player (Fullscreen/Audio), Open New Comment, or Comment Modal
         elif action == ACTION_SELECT:
-            if Pr0API.is_video(item):
-                is_nsfw = bool(item.get("flags", 1) & (FLAG_NSFW | FLAG_NSFL))
-                if is_nsfw and not self.api.is_age_verified and not self.av_cookie:
-                    self.set_toast("NSFW: Altersverifikation auf pr0gramm.com nötig!", COLOR_RED, duration=3.0)
-                media_url = Pr0API.get_media_url(item)
-                local_path = self.cache.get_local_path(media_url)
-                if not self.autoplay_video and not self.inline_player._running:
-                    # Manually start inline video if autoplay is off
-                    stream_target = local_path if local_path else media_url
-                    orig_w = item.get("width") or 16
-                    orig_h = item.get("height") or 9
-                    max_w = min(640, self.width - 24)
-                    max_h = int((self.height - self.ui.header_height - self.ui.footer_height) * 0.72)
-                    scale = min(max_w / orig_w, max_h / orig_h)
-                    tw = max(100, int(orig_w * scale))
-                    th = max(60, int(orig_h * scale))
-                    self.inline_player.play_inline(stream_target, tw, th)
-                else:
-                    self.inline_player.stop()
-                    play_target = local_path if local_path else media_url
-                    played = self.video.play(play_target, self.width, self.height)
-                    if not played:
-                        self.set_toast("mpv/ffplay nicht installiert!", COLOR_RED, duration=2.0)
-                    self._update_inline_video()
-        elif action == ACTION_UPVOTE:
-            self.cast_vote(item["id"], 1)
-        elif action == ACTION_DOWNVOTE:
-            self.cast_vote(item["id"], -1)
+            if self.post_focus_idx == 0:
+                if Pr0API.is_video(item):
+                    is_nsfw = bool(item.get("flags", 1) & (FLAG_NSFW | FLAG_NSFL))
+                    if is_nsfw and not self.api.is_age_verified and not self.av_cookie:
+                        self.set_toast("NSFW: Altersverifikation auf pr0gramm.com nötig!", COLOR_RED, duration=3.0)
+                    media_url = Pr0API.get_media_url(item)
+                    local_path = self.cache.get_local_path(media_url)
+                    if not self.autoplay_video and not self.inline_player._running:
+                        # Manually start inline video if autoplay is off
+                        stream_target = local_path if local_path else media_url
+                        orig_w = item.get("width") or 16
+                        orig_h = item.get("height") or 9
+                        max_w = min(640, self.width - 24)
+                        max_h = int((self.height - self.ui.header_height - self.ui.footer_height) * 0.72)
+                        scale = min(max_w / orig_w, max_h / orig_h)
+                        tw = max(100, int(orig_w * scale))
+                        th = max(60, int(orig_h * scale))
+                        self.inline_player.play_inline(stream_target, tw, th)
+                    else:
+                        self.inline_player.stop()
+                        play_target = local_path if local_path else media_url
+                        played = self.video.play(play_target, self.width, self.height)
+                        if not played:
+                            self.set_toast("mpv/ffplay nicht installiert!", COLOR_RED, duration=2.0)
+                        self._update_inline_video()
+
+            elif self.post_focus_idx == 1:
+                if not self.api.is_authenticated:
+                    self.set_toast("Login erforderlich zum Kommentieren!", COLOR_RED, duration=2.5)
+                    return
+                self.comment_reply_parent_id = 0
+                self.comment_reply_author = None
+                self.virtual_keyboard = VirtualKeyboard(
+                    title="Neuer Kommentar",
+                    initial_text="",
+                    is_password=False,
+                    max_length=500,
+                )
+
+            elif self.post_focus_idx >= 2:
+                c_idx = self.post_focus_idx - 2
+                if 0 <= c_idx < len(comments):
+                    self.comment_modal_target = comments[c_idx]
+                    self.comment_modal_idx = 0
+                    self.comment_modal_open = True
+
+        # 4. Upvote (+1) via R1 or Y
+        elif action in (ACTION_UPVOTE, ACTION_SOLO_FLAG):
+            if self.post_focus_idx >= 2:
+                c_idx = self.post_focus_idx - 2
+                if 0 <= c_idx < len(comments):
+                    self.cast_comment_vote(comments[c_idx]["id"], 1)
+            else:
+                self.cast_vote(item["id"], 1)
+
+        # 5. Downvote (-1) via L1 or X
+        elif action in (ACTION_DOWNVOTE, ACTION_INFO):
+            if self.post_focus_idx >= 2:
+                c_idx = self.post_focus_idx - 2
+                if 0 <= c_idx < len(comments):
+                    self.cast_comment_vote(comments[c_idx]["id"], -1)
+            else:
+                self.cast_vote(item["id"], -1)
+
         elif action == ACTION_SETTINGS:
             self.inline_player.stop()
             self.state = STATE_SETTINGS
             self.settings_idx = 0
+
         elif action == ACTION_BACK:
             self.inline_player.stop()
+            self.comment_modal_open = False
+            self.virtual_keyboard = None
+            self.post_focus_idx = 0
             self.state = STATE_GRID
 
     # -------------------------------------------------------------------------
@@ -1288,9 +1529,20 @@ class Pr0App:
                 elif task_type == "post_info":
                     self.current_post_info = result
                     self.is_loading_info = False
-                elif task_type == "vote":
+                elif task_type in ("vote", "vote_comment"):
                     res = result.get("result", {})
                     logger.info("Vote cast result: %s", res)
+                elif task_type == "post_comment":
+                    p_id = result.get("post_id")
+                    res = result.get("res", {})
+                    if res.get("success"):
+                        self.set_toast("Kommentar erfolgreich gesendet!", COLOR_GREEN, duration=2.5)
+                        if p_id:
+                            self.ui.clear_comment_cache(p_id)
+                            self.fetch_post_info(p_id)
+                    else:
+                        err = res.get("error", "Fehler beim Senden")
+                        self.set_toast(f"Fehler: {err}", COLOR_RED, duration=3.0)
             else:
                 err = task.get("error", "Unknown error")
                 logger.error("Task %s failed: %s", task_type, err)
@@ -1300,6 +1552,10 @@ class Pr0App:
                 elif task_type == "post_info":
                     self.is_loading_info = False
                     self.set_toast("Fehler beim Laden der Kommentare!", COLOR_RED, duration=2.0)
+                elif task_type == "vote_comment":
+                    self.set_toast("Fehler beim Bewerten!", COLOR_RED, duration=2.0)
+                elif task_type == "post_comment":
+                    self.set_toast("Fehler beim Senden des Kommentars!", COLOR_RED, duration=2.5)
 
     def render(self) -> None:
         """Render current scene based on active state."""
@@ -1381,7 +1637,7 @@ class Pr0App:
         elif self.state == STATE_POST and self.items:
             # 3. Single Post View (Continuous vertical scroll: media -> meta -> tags -> comments)
             item = self.items[self.selected_idx]
-            self.max_post_scroll = self.ui.render_post(
+            self.max_post_scroll, self.post_focus_targets = self.ui.render_post(
                 item=item,
                 tags=self.current_post_info.get("tags", []),
                 comments=self.current_post_info.get("comments", []),
@@ -1391,6 +1647,7 @@ class Pr0App:
                 is_loading_info=self.is_loading_info,
                 inline_frame=self.inline_player.get_current_frame(),
                 inline_progress=self.inline_player.get_progress(),
+                focused_idx=self.post_focus_idx,
             )
 
             self.ui.render_header(
@@ -1404,19 +1661,54 @@ class Pr0App:
                 flags=self.flags,
             )
 
-            is_vid = Pr0API.is_video(item)
-            hints = [
-                ("◄/►", "Post"),
-                ("▲/▼", "Scrollen"),
-            ]
-            if is_vid:
-                hints.append(("A", "Vollbild"))
-            hints.extend([
-                ("R1/+", "+1"),
-                ("L1/-", "-1"),
-                ("B", "Grid"),
-                ("START", "Setup"),
-            ])
+            # Modal or Keyboard Overlay
+            if self.comment_modal_open and self.comment_modal_target:
+                self.ui.render_comment_modal(
+                    comment=self.comment_modal_target,
+                    selected_idx=self.comment_modal_idx,
+                )
+                hints = [
+                    ("▲/▼", "Auswahl"),
+                    ("A", "Auswählen"),
+                    ("Y", "+1"),
+                    ("X", "-1"),
+                    ("B", "Abbrechen"),
+                ]
+            elif self.virtual_keyboard:
+                self.ui.render_keyboard_modal(self.virtual_keyboard)
+                hints = [
+                    ("D-Pad", "Navigieren"),
+                    ("A", "Tippen"),
+                    ("X", "Shift"),
+                    ("Y", "Löschen"),
+                    ("B", "Abbrechen"),
+                ]
+            else:
+                is_vid = Pr0API.is_video(item)
+                hints = [
+                    ("◄/►", "Post"),
+                    ("▲/▼", "Fokus"),
+                ]
+                if self.post_focus_idx == 0:
+                    if is_vid:
+                        hints.append(("A", "Vollbild"))
+                    hints.extend([
+                        ("Y/R1", "+1"),
+                        ("X/L1", "-1"),
+                    ])
+                elif self.post_focus_idx == 1:
+                    hints.append(("A", "Kommentieren"))
+                else:
+                    hints.extend([
+                        ("A", "Aktionen"),
+                        ("Y/R1", "+1"),
+                        ("X/L1", "-1"),
+                    ])
+
+                hints.extend([
+                    ("B", "Grid"),
+                    ("START", "Setup"),
+                ])
 
             self.ui.render_footer(
                 hints=hints,

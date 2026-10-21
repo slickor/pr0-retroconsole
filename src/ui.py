@@ -292,14 +292,18 @@ class UIRenderer:
             item_h = 18 + len(wrapped_lines) * 16
 
             items.append({
+                "id": c.get("id", 0),
                 "c_x": c_x,
                 "c_w": c_w,
                 "depth": depth,
                 "author": author,
                 "score_str": score_str,
+                "up": c_up,
+                "down": c_down,
                 "time_txt": time_txt,
                 "wrapped_lines": wrapped_lines,
                 "item_h": item_h,
+                "comment": c,
             })
 
         if len(self._comment_layout_cache) > 20:
@@ -307,6 +311,15 @@ class UIRenderer:
 
         self._comment_layout_cache[key] = items
         return items
+
+    def clear_comment_cache(self, item_id: int | None = None) -> None:
+        """Clear precomputed comment layout cache (e.g. after voting or posting a comment)."""
+        if item_id is None:
+            self._comment_layout_cache.clear()
+        else:
+            keys_to_del = [k for k in self._comment_layout_cache if k[0] == item_id]
+            for k in keys_to_del:
+                del self._comment_layout_cache[k]
 
     # -------------------------------------------------------------------------
     # Helper Drawing Functions
@@ -761,10 +774,11 @@ class UIRenderer:
         is_loading_info: bool = False,
         inline_frame: pygame.Surface | None = None,
         inline_progress: float | None = None,
-    ) -> int:
+        focused_idx: int = 0,
+    ) -> tuple[int, dict[int, tuple[int, int]]]:
         """Render single post view with media at top and comments directly underneath.
 
-        Returns max_scroll in pixels.
+        Returns (max_scroll in pixels, focus_targets dict mapping focus_idx -> (content_y, height)).
         """
         self.screen.fill(self.color_bg)
 
@@ -778,11 +792,14 @@ class UIRenderer:
 
         content_x = 12
         content_w = viewport_w - 24
-        curr_y = view_y_start + 10 - scroll_y
+        content_y_start = view_y_start + 10
+        curr_y = content_y_start - scroll_y
 
         is_video = Pr0API.is_video(item)
         media_url = Pr0API.get_media_url(item)
         thumb_url = Pr0API.get_thumb_url(item)
+
+        focus_targets: dict[int, tuple[int, int]] = {}
 
         # 1. Media (Image or Video)
         if is_video:
@@ -812,6 +829,7 @@ class UIRenderer:
                     scaled_surf = self._get_scaled_surface(active_surf, target_w, target_h)
 
                 draw_x = (viewport_w - target_w) // 2
+                focus_targets[0] = (0, target_h)
                 if curr_y + target_h >= view_y_start and curr_y <= view_y_end:
                     self.screen.blit(scaled_surf, (draw_x, curr_y))
 
@@ -833,6 +851,7 @@ class UIRenderer:
                     target_w = content_w
                     target_h = int(orig_h * (target_w / orig_w))
                     draw_x = content_x
+                    focus_targets[0] = (0, target_h)
                     scaled_surf = self._get_scaled_surface(active_surf, target_w, target_h)
                     if curr_y + target_h >= view_y_start and curr_y <= view_y_end:
                         self.screen.blit(scaled_surf, (draw_x, curr_y))
@@ -844,12 +863,14 @@ class UIRenderer:
                     target_w = max(100, int(orig_w * scale_factor))
                     target_h = max(60, int(orig_h * scale_factor))
                     draw_x = (viewport_w - target_w) // 2
+                    focus_targets[0] = (0, target_h)
                     scaled_surf = self._get_scaled_surface(active_surf, target_w, target_h)
                     if curr_y + target_h >= view_y_start and curr_y <= view_y_end:
                         self.screen.blit(scaled_surf, (draw_x, curr_y))
                     curr_y += target_h + 14
         else:
             placeholder_h = int(160 * self.scale)
+            focus_targets[0] = (0, placeholder_h)
             pygame.draw.rect(self.screen, self.color_card, (content_x, curr_y, content_w, placeholder_h), border_radius=6)
             msg = "Lade Medium..."
             mw = self.font_regular.size(msg)[0]
@@ -920,6 +941,34 @@ class UIRenderer:
             self.draw_text(self.screen, self.font_bold, comment_title, self.color_accent, (content_x, curr_y))
         curr_y += 24
 
+        # Action Button: Write new comment (Focus index 1)
+        btn_comment_h = int(28 * self.scale)
+        btn_content_y = curr_y + scroll_y - content_y_start
+        focus_targets[1] = (btn_content_y, btn_comment_h)
+        is_btn_focused = (focused_idx == 1)
+
+        if curr_y + btn_comment_h >= view_y_start and curr_y <= view_y_end:
+            btn_rect = pygame.Rect(content_x, curr_y, content_w, btn_comment_h)
+            if is_btn_focused:
+                pygame.draw.rect(self.screen, self.color_accent, btn_rect, border_radius=6)
+                btn_txt_col = (255, 255, 255)
+            else:
+                pygame.draw.rect(self.screen, self.color_card, btn_rect, border_radius=6)
+                pygame.draw.rect(self.screen, self.color_card_border, btn_rect, width=1, border_radius=6)
+                btn_txt_col = self.color_text_dim
+
+            btn_txt = "✎  Neuen Kommentar verfassen..."
+            bw = self.font_small.size(btn_txt)[0]
+            self.draw_text(
+                self.screen,
+                self.font_bold if is_btn_focused else self.font_small,
+                btn_txt,
+                btn_txt_col,
+                (btn_rect.centerx - bw // 2, btn_rect.centery - self.font_small.get_height() // 2),
+            )
+
+        curr_y += btn_comment_h + 14
+
         if is_loading_info:
             if curr_y + 24 >= view_y_start and curr_y <= view_y_end:
                 self.draw_text(self.screen, self.font_small, "Lade Kommentare...", self.color_text_dim, (content_x, curr_y))
@@ -930,8 +979,11 @@ class UIRenderer:
             curr_y += 24
         else:
             layout_items = self._get_comment_layout(item["id"], comments, content_w)
-            for c_info in layout_items:
+            for idx, c_info in enumerate(layout_items):
                 item_h = c_info["item_h"]
+                item_content_y = curr_y + scroll_y - content_y_start
+                focus_targets[idx + 2] = (item_content_y, item_h)
+                is_focused = (focused_idx == (idx + 2))
 
                 # Viewport Culling: Skip rendering if completely off-screen
                 if curr_y + item_h < view_y_start:
@@ -943,12 +995,27 @@ class UIRenderer:
 
                 # On-screen: Render comment card elements
                 c_x = c_info["c_x"]
+                c_w = c_info["c_w"]
                 depth = c_info["depth"]
-                if depth > 0:
-                    pygame.draw.line(self.screen, self.color_card_border, (c_x - 6, curr_y + 2), (c_x - 6, curr_y + 16), 2)
 
-                author_w = self.draw_text(self.screen, self.font_small, c_info["author"], self.color_accent, (c_x, curr_y))
-                score_w = self.draw_text(self.screen, self.font_small, c_info["score_str"], self.color_text_dim, (c_x + author_w, curr_y))
+                if is_focused:
+                    pad_v = 3
+                    pad_h = 6
+                    focus_rect = pygame.Rect(c_x - pad_h, curr_y - pad_v, c_w + pad_h * 2, item_h + pad_v * 2)
+                    pygame.draw.rect(self.screen, (34, 34, 40), focus_rect, border_radius=4)
+                    pygame.draw.rect(self.screen, self.color_accent, focus_rect, width=1, border_radius=4)
+
+                if depth > 0:
+                    line_color = self.color_accent if is_focused else self.color_card_border
+                    pygame.draw.line(self.screen, line_color, (c_x - 6, curr_y + 2), (c_x - 6, curr_y + 16), 2)
+
+                prefix = "▶ " if is_focused else ""
+                author_str = f"{prefix}{c_info['author']}"
+                author_w = self.draw_text(self.screen, self.font_small, author_str, self.color_accent, (c_x, curr_y))
+
+                score_val = c_info["up"] - c_info["down"]
+                score_color = self.color_green if score_val > 0 else (self.color_red if score_val < 0 else self.color_text_dim)
+                score_w = self.draw_text(self.screen, self.font_small, c_info["score_str"], score_color, (c_x + author_w, curr_y))
                 if c_info["time_txt"]:
                     self.draw_text(self.screen, self.font_small, c_info["time_txt"], self.color_text_dim, (c_x + author_w + score_w, curr_y))
 
@@ -980,7 +1047,116 @@ class UIRenderer:
             scroll_y,
         )
 
-        return max_scroll
+        return max_scroll, focus_targets
+
+    def render_comment_modal(
+        self,
+        comment: dict[str, Any],
+        selected_idx: int = 0,
+    ) -> None:
+        """Render action popup modal for a comment (+1, -1, Antworten, Abbrechen)."""
+        # 1. Semi-transparent backdrop overlay
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        # 2. Centered dialog box
+        box_w = min(int(460 * self.scale), self.width - 24)
+        box_h = int(240 * self.scale)
+        box_x = (self.width - box_w) // 2
+        box_y = (self.height - box_h) // 2
+        box_rect = pygame.Rect(box_x, box_y, box_w, box_h)
+
+        pygame.draw.rect(self.screen, self.color_card, box_rect, border_radius=8)
+        pygame.draw.rect(self.screen, self.color_card_border, box_rect, width=1, border_radius=8)
+
+        # 3. Header: Author & Score
+        author = comment.get("name", "unbekannt")
+        up = comment.get("up", 0)
+        down = comment.get("down", 0)
+        score = up - down
+        score_col = self.color_green if score > 0 else (self.color_red if score < 0 else self.color_text_dim)
+
+        header_y = box_y + int(12 * self.scale)
+        hx = box_x + int(16 * self.scale)
+        hx += self.draw_text(self.screen, self.font_bold, f"Kommentar von @{author}", self.color_accent, (hx, header_y)) + 10
+        self.draw_text(self.screen, self.font_small, f"({score:+d})", score_col, (hx, header_y + 2))
+
+        # 4. Comment Preview snippet
+        raw_text = comment.get("content", "").replace("\n", " ").strip()
+        if len(raw_text) > 65:
+            raw_text = raw_text[:62] + "..."
+        preview_y = header_y + int(20 * self.scale)
+        self.draw_text(self.screen, self.font_small, f"„{raw_text}“", self.color_text_dim, (box_x + int(16 * self.scale), preview_y))
+
+        # Divider
+        div_y = preview_y + int(20 * self.scale)
+        pygame.draw.line(self.screen, self.color_card_border, (box_x + 12, div_y), (box_x + box_w - 12, div_y), 1)
+
+        # 5. Options List
+        options = [
+            ("✎ Antworten", "Antwort auf diesen Kommentar schreiben"),
+            ("▲ +1 (Blussi)", "Kommentar positiv bewerten"),
+            ("▼ -1 (Downvote)", "Kommentar negativ bewerten"),
+            ("✕ Abbrechen", "Zurück"),
+        ]
+
+        opt_start_y = div_y + int(8 * self.scale)
+        opt_h = int(28 * self.scale)
+        opt_gap = int(4 * self.scale)
+
+        for i, (opt_title, opt_desc) in enumerate(options):
+            opt_y = opt_start_y + i * (opt_h + opt_gap)
+            opt_rect = pygame.Rect(box_x + int(14 * self.scale), opt_y, box_w - int(28 * self.scale), opt_h)
+            is_sel = (i == selected_idx)
+
+            if is_sel:
+                pygame.draw.rect(self.screen, self.color_accent, opt_rect, border_radius=6)
+                txt_col = (255, 255, 255)
+                desc_col = (240, 240, 240)
+                prefix = "▶ "
+            else:
+                pygame.draw.rect(self.screen, (22, 22, 26), opt_rect, border_radius=6)
+                pygame.draw.rect(self.screen, self.color_card_border, opt_rect, width=1, border_radius=6)
+                txt_col = self.color_text
+                desc_col = self.color_text_dim
+                prefix = "   "
+
+            tx = opt_rect.x + int(10 * self.scale)
+            ty = opt_rect.centery - self.font_bold.get_height() // 2
+            tx += self.draw_text(self.screen, self.font_bold, f"{prefix}{opt_title}", txt_col, (tx, ty)) + 14
+            self.draw_text(self.screen, self.font_small, opt_desc, desc_col, (tx, ty + 2))
+
+    def render_keyboard_modal(
+        self,
+        keyboard: Any,
+    ) -> None:
+        """Render virtual keyboard as a modal overlay on bottom half of the screen."""
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        kb_w = min(int(600 * self.scale), self.width - 16)
+        kb_h = int(216 * self.scale)
+        kb_x = (self.width - kb_w) // 2
+        kb_y = self.height - self.footer_height - kb_h - int(6 * self.scale)
+
+        keyboard.render(
+            surface=self.screen,
+            x=kb_x,
+            y=kb_y,
+            width=kb_w,
+            height=kb_h,
+            font_regular=self.font_regular,
+            font_bold=self.font_bold,
+            font_small=self.font_small,
+            color_card=self.color_card,
+            color_border=self.color_card_border,
+            color_text=self.color_text,
+            color_text_dim=self.color_text_dim,
+            color_accent=self.color_accent,
+            scale=self.scale,
+        )
 
     # -------------------------------------------------------------------------
     # 3. Settings View (Colors, Themes, Feed Preferences)

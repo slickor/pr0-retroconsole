@@ -7,6 +7,23 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.17] - 2026-10-21
+
+### Hinzugefügt
+- **Interaktive Kommentare (Upvote / Downvote & Antworten):**
+  - **D-Pad Fokus-Navigation:** In der Beitragsansicht kann mit D-Pad Oben / Unten stufenlos und mit weichem Auto-Scroll zwischen dem Medium, der neuen Kommentar-Schaltfläche und allen Kommentaren navigiert werden.
+  - **Kommentar-Aktionsmenü:** Drücken von `A` auf einem ausgewählten Kommentar öffnet ein zentriertes Popup-Modal mit Optionen:
+    - `✎ Antworten`: Öffnet die Bildschirmtastatur zur direkten Antwort an `@autor`.
+    - `▲ +1 (Blussi)`: Vergibt ein Upvote auf den Kommentar.
+    - `▼ -1 (Downvote)`: Vergibt ein Downvote auf den Kommentar.
+    - `✕ Abbrechen`: Schließt das Modal.
+  - **Schnell-Voting:** Mit `Y` (oder `R1`) bzw. `X` (oder `L1`) kann der fokussierte Kommentar (oder der Post selbst, wenn das Medium fokussiert ist) sofort bewertet werden.
+  - **Neuen Kommentar verfassen:** Über die neue Schaltfläche `[ ✎ Neuen Kommentar verfassen... ]` direkt unter der Kommentaranzahl können neue Hauptkommentare erstellt werden.
+  - **Bildschirmtastatur & USB-Tastatur-Support:** Volle Unterstützung für die virtuelle Tastatur (QWERTY, Shift, Backspace, Fertig) per Gamepad sowie Texteingabe per physischer Tastatur.
+  - **Optimistisches UI-Feedback:** Benis-Punkte und Bewertungen werden sofort visuell aktualisiert (grün für positiv, rot für negativ) und im Hintergrund per API synchronisiert.
+
+---
+
 ## [0.3.16] - 2026-10-21
 
 ### Hinzugefügt
