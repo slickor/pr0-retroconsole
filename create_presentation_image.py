@@ -18,10 +18,13 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.version import VERSION
 
 # Paths
-SOURCE_RENDER = Path(r"C:\Users\Philipp\.gemini\antigravity\brain\d316afdf-bb51-41fd-aaae-10a6f05e5073\r36s_trimui_pr0gramm_consoles_1792434684236.jpg")
 OUTPUT_DIR = PROJECT_ROOT
 DOCS_IMAGES_DIR = PROJECT_ROOT / "docs" / "images"
 DOCS_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+HERO_RENDER = DOCS_IMAGES_DIR / "consoles_pr0_real_render.png"
+FALLBACK_RENDER = Path(r"C:\Users\Philipp\.gemini\antigravity\brain\d316afdf-bb51-41fd-aaae-10a6f05e5073\r36s_trimui_pr0gramm_consoles_1792434684236.jpg")
+SOURCE_RENDER = HERO_RENDER if HERO_RENDER.is_file() else FALLBACK_RENDER
 
 POSTER_PATH = OUTPUT_DIR / "pr0-presentation-poster.png"
 BANNER_PATH = OUTPUT_DIR / "pr0-presentation-banner.png"
@@ -200,10 +203,10 @@ def create_poster():
 
         # Overlay labels on the render
         # Label 1: R36S
-        draw_pill(draw, render_x + 35, render_y + 35, "R36S  •  3.5\" 4:3  •  ArkOS", font_badge, 
+        draw_pill(draw, render_x + 35, render_y + 35, "R36S  •  3.5\" 4:3 Gridview  •  ArkOS & Knulli", font_badge, 
                   (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=16, pad_y=8)
         # Label 2: TrimUI Smart Pro
-        draw_pill(draw, None, render_y + 35, "TrimUI Smart Pro  •  5.0\" 16:9  •  CrossMix-OS", font_badge, 
+        draw_pill(draw, None, render_y + 35, "TrimUI Smart Pro  •  5.0\" 16:9 Widescreen Grid  •  CrossMix & Knulli", font_badge, 
                   (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=16, pad_y=8, right_x=render_x + target_rw - 35)
 
         curr_y += target_rh + 45
@@ -442,8 +445,8 @@ def create_banner():
         im.paste(render_resized, (rx, ry), mask)
 
         # Labels
-        draw_pill(draw, rx + 25, ry + 25, "R36S (ArkOS)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6)
-        draw_pill(draw, None, ry + 25, "TrimUI Smart Pro (CrossMix)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6, right_x=rx + target_rw - 25)
+        draw_pill(draw, rx + 25, ry + 25, "R36S Grid (ArkOS / Knulli)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6)
+        draw_pill(draw, None, ry + 25, "TrimUI 16:9 Grid (CrossMix / Knulli)", font_badge, (15, 15, 18, 220), COLOR_TEXT_WHITE, COLOR_ORANGE, pad_x=14, pad_y=6, right_x=rx + target_rw - 25)
 
         # Bottom card under render
         card_y = ry + target_rh + 35
