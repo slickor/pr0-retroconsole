@@ -94,6 +94,18 @@
 
 ---
 
+### 🔄 Updates durchführen (Kinderleicht & Sicher)
+
+Wenn eine neue Version von **pr0-retroconsole** erscheint, musst du **keine Neueinrichtung** vornehmen:
+
+1. Lade einfach die neue `pr0-retroconsole-v*.zip` von der [Releases-Seite](https://github.com/slickor/pr0-retroconsole/releases) herunter.
+2. Entpacke den Inhalt direkt über deine bestehende Installation auf der SD-Karte und **überschreibe alle vorhandenen Dateien**.
+3. **Deine Einstellungen & Logindaten bleiben 100% erhalten!**
+   > [!TIP]
+   > Alle persönlichen Daten (wie dein pr0gramm Login-Cookie, gewählte Filter, Farbschema und Tastenlayout) werden lokal in der Datei `config.json` auf deinem Handheld gespeichert. Da im Release-Paket bewusst nur die unverfängliche Vorlage `config.example.json` mitgeliefert wird, wird deine aktive `config.json` bei einem Update niemals überschrieben. Du bleibst dauerhaft eingeloggt!
+
+---
+
 ## Authentifizierung & Login
 
 Für Upvotes/Downvotes sowie NSFW-/NSFL-Inhalte stehen drei bequeme Anmeldemethoden zur Verfügung:
