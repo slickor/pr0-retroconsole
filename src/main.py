@@ -26,7 +26,7 @@ if str(ROOT_DIR / "src") not in sys.path:
 if str(ROOT_DIR / "libs") not in sys.path:
     sys.path.insert(0, str(ROOT_DIR / "libs"))
 
-from api import Pr0API, FLAG_SFW
+from api import Pr0API, FLAG_SFW, FLAG_NSFW, FLAG_NSFL, FLAG_NSFP
 from cache import MediaCache
 from input import (
     InputManager,

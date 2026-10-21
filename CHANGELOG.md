@@ -7,6 +7,16 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.3.15] - 2026-10-21
+
+### Behoben
+- **NameError-Absturz beim Öffnen von Videos behoben:**
+  - Laut Crash-Log stürzte die App beim Betreten der Videoansicht sofort ab (`NameError: name 'FLAG_NSFW' is not defined`).
+  - Die Konstanten `FLAG_NSFW`, `FLAG_NSFL` und `FLAG_NSFP` wurden in den Import von `src/main.py` aufgenommen.
+  - Sämtliche Quelldateien wurden statisch auf fehlende Symbole geprüft.
+
+---
+
 ## [0.3.14] - 2026-10-21
 
 ### Behoben
