@@ -29,6 +29,7 @@ fi
 if [ -f "$controlfolder/control.txt" ]; then
   source "$controlfolder/control.txt"
   [ -f "$controlfolder/tasksetter" ] && source "$controlfolder/tasksetter"
+  [ -f "${controlfolder}/mod_${CFW_NAME}.txt" ] && source "${controlfolder}/mod_${CFW_NAME}.txt"
   get_controls
 fi
 
@@ -71,13 +72,18 @@ fi
 export PYTHONUNBUFFERED=1
 export PYTHONPATH="$GAMEDIR/libs:$PYTHONPATH"
 
-# Handheld media player and shared library search paths (TrimUI Smart Pro, CrossMix, PortMaster)
-export PATH="/mnt/SDCARD/System/bin:/mnt/sdcard/System/bin:/opt/system/Tools/PortMaster/tools:/roms/ports/PortMaster/tools:$PATH"
-export LD_LIBRARY_PATH="/lib:/lib64:/usr/lib:/mnt/SDCARD/System/lib:/mnt/sdcard/System/lib:/mnt/SDCARD/Apps/PortMaster/PortMaster:/mnt/sdcard/Apps/PortMaster/PortMaster:$LD_LIBRARY_PATH"
+# Handheld media player and shared library search paths (TrimUI Smart Pro, CrossMix, muOS, PortMaster)
+export PATH="/mnt/SDCARD/System/bin:/mnt/sdcard/System/bin:/mnt/mmc/MUOS/PortMaster/tools:/mnt/mmc/ports/PortMaster/tools:/opt/system/Tools/PortMaster/tools:/roms/ports/PortMaster/tools:$PATH"
+export LD_LIBRARY_PATH="/lib:/lib64:/usr/lib:/mnt/SDCARD/System/lib:/mnt/sdcard/System/lib:/mnt/mmc/MUOS/PortMaster:/mnt/mmc/MUOS/PortMaster/libs:/mnt/mmc/ports/PortMaster:/mnt/mmc/ports/PortMaster/libs:/mnt/SDCARD/Apps/PortMaster/PortMaster:/mnt/sdcard/Apps/PortMaster/PortMaster:$LD_LIBRARY_PATH"
 
-# Verify essential dependencies (pygame and pure-python requests)
-if ! PYTHONPATH="$GAMEDIR/libs:$PYTHONPATH" python3 -c "import pygame, requests" >/dev/null 2>&1; then
-  echo "Dependencies missing, running installer..."
+# Function to verify if Pygame has functional console/hardware display driver (not headless offscreen/dummy)
+has_functional_display() {
+  python3 -c "import pygame; pygame.display.init(); drv = pygame.display.get_driver(); exit(0 if drv not in ('offscreen', 'dummy') else 1)" >/dev/null 2>&1
+}
+
+# Verify essential dependencies (pygame with functional display driver and requests)
+if ! PYTHONPATH="$GAMEDIR/libs:$PYTHONPATH" python3 -c "import pygame, requests" >/dev/null 2>&1 || ! has_functional_display; then
+  echo "Dependencies missing or incompatible display driver, running installer..."
   bash ./install.sh
 fi
 

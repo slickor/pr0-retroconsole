@@ -795,11 +795,13 @@ BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
                 except Exception:
                     pass
 
-                # Fullscreen software-decoded playback for TrimUI Smart Pro, R36S, ArkOS
+                # Fullscreen playback for TrimUI Smart Pro, R36S, ArkOS, Knulli, muOS
                 cmd = [
                     self.player_path,
                     "--fs",
                     "--hwdec=no",
+                    "--vo=gpu,drm,sdl",
+                    "--gpu-context=auto",
                     "--ao=alsa,oss,sdl",
                     "--volume=100",
                     "--video-sync=audio",
@@ -810,7 +812,7 @@ BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
                     "--loop-file=inf",
                     "--input-terminal=yes",
                     "--input-gamepad=yes",
-                    "--really-quiet",
+                    "--msg-level=all=warn",
                     "--osd-level=1",
                     "--osd-bar=yes",
                     "--osd-on-seek=bar",
@@ -925,35 +927,52 @@ BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
 
         # Determine back button index and keys based on active layout
         if self.button_layout == "inverted":
-            # Inverted: B = Play, A = Back
+            # Inverted (Xbox style): B = Play, A = Back
             back_btn = 1
-            back_keys = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_a, pygame.K_ESCAPE, pygame.K_q)
+            back_keys = (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_a, pygame.K_q)
         else:
             # Standard (Nintendo / TrimUI / Knulli / ArkOS): A = Play, B = Back
             back_btn = 0
             back_keys = (pygame.K_ESCAPE, pygame.K_b, pygame.K_q, pygame.K_BACKSPACE)
 
+        # On Linux handhelds with exclusive display layers (Mali / KMSDRM), temporarily release Pygame display
+        # so mpv has exclusive hardware access to the screen
+        had_display = False
+        if self.is_handheld and self.system == "Linux":
+            try:
+                logger.info("Temporarily releasing Pygame display for fullscreen video player...")
+                pygame.display.quit()
+                had_display = True
+            except Exception as e:
+                logger.debug("Failed to release display: %s", e)
+
         try:
             # Run player and monitor for exit
             p = subprocess.Popen(cmd, env=env)
-            while p.poll() is None:
-                # Pump pygame events to detect user exit requests
-                for ev in pygame.event.get():
-                    if ev.type == pygame.QUIT:
-                        p.terminate()
-                        break
-                    elif ev.type == pygame.KEYDOWN:
-                        if ev.key in back_keys:
-                            logger.info("Video player exit requested via key %s", ev.key)
+            if had_display:
+                # On handheld with exclusive display, mpv has full screen control and handles its own inputs
+                try:
+                    p.wait()
+                except KeyboardInterrupt:
+                    p.terminate()
+            else:
+                # Desktop windowed monitor loop
+                while p.poll() is None:
+                    for ev in pygame.event.get():
+                        if ev.type == pygame.QUIT:
                             p.terminate()
                             break
-                    elif ev.type == pygame.JOYBUTTONDOWN:
-                        # Back button or Select/Back button (6, 8, 10)
-                        if ev.button in (back_btn, 6, 8, 10):
-                            logger.info("Video player exit requested via gamepad back button %s", ev.button)
-                            p.terminate()
-                            break
-                time.sleep(0.04)
+                        elif ev.type == pygame.KEYDOWN:
+                            if ev.key in back_keys:
+                                logger.info("Video player exit requested via key %s", ev.key)
+                                p.terminate()
+                                break
+                        elif ev.type == pygame.JOYBUTTONDOWN:
+                            if ev.button in (back_btn, 6, 8, 10):
+                                logger.info("Video player exit requested via gamepad back button %s", ev.button)
+                                p.terminate()
+                                break
+                    time.sleep(0.04)
 
             try:
                 p.wait(timeout=0.5)
@@ -965,17 +984,20 @@ BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
             logger.error("Failed to execute video player: %s", e)
             return False
         finally:
-            # CRITICAL SDL2 TRANSITION:
-            # Allow time for physical button release and purge queue so events
-            # do not bleed into Pygame's post view
             time.sleep(0.2)
-            pygame.event.clear()
 
-            # On Linux handhelds (ArkOS / KMSDRM), re-assert display mode to restore DRM CRTC
-            # and prevent -16 (EBUSY) pageflip lockups after child player exits
-            if self.is_handheld and self.system == "Linux":
+            if had_display:
+                logger.info("Restoring Pygame display after video playback...")
+                try:
+                    pygame.display.init()
+                    pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+                    pygame.event.clear()
+                except Exception as e:
+                    logger.warning("Failed to restore Pygame display: %s", e)
+            elif self.is_handheld and self.system == "Linux":
                 try:
                     pygame.display.set_mode((width, height))
+                    pygame.event.clear()
                 except Exception as e:
                     logger.debug("Failed to re-sync display mode: %s", e)
 

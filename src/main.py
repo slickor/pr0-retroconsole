@@ -323,6 +323,8 @@ class Pr0App:
                 for hw_cand in hw_drivers:
                     try:
                         os.environ["SDL_VIDEODRIVER"] = hw_cand
+                        if hw_cand == "kmsdrm":
+                            os.environ.setdefault("SDL_KMSDRM_DEVICE_INDEX", "0")
                         pygame.display.quit()
                         pygame.display.init()
                         test_drv = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else ""
@@ -334,7 +336,7 @@ class Pr0App:
                                 logger.info("Successfully activated hardware display backend: %s", hw_cand)
                                 break
                     except Exception as ex_drv:
-                        logger.debug("Hardware driver candidate '%s' failed: %s", hw_cand, ex_drv)
+                        logger.info("Hardware driver candidate '%s' not usable: %s", hw_cand, ex_drv)
                         continue
 
             # Fallback if no candidate worked
@@ -1191,6 +1193,9 @@ class Pr0App:
                         self.inline_player.stop()
                         play_target = local_path if local_path else media_url
                         played = self.video.play(play_target, self.width, self.height)
+                        if pygame.display.get_surface():
+                            self.screen = pygame.display.get_surface()
+                            self.ui.screen = self.screen
                         if not played:
                             self.set_toast("mpv/ffplay nicht installiert!", COLOR_RED, duration=2.0)
                         self._update_inline_video()

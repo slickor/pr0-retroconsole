@@ -7,6 +7,7 @@ __pycache__/
 config.json
 *.log
 log.txt
+log_*.txt
 
 # Handheld local libs & install marker
 libs/*

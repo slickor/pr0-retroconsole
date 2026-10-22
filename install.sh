@@ -24,12 +24,16 @@ status_msg "========================================="
 status_msg "  pr0-retroconsole: Ersteinrichtung      "
 status_msg "========================================="
 
-# 1. Check if pygame is already installed
-if python3 -c "import pygame" > /dev/null 2>&1; then
-    status_msg "Pygame ist bereits verfuegbar."
+# 1. Check if pygame or pygame-ce with functional display support is available
+has_functional_pygame() {
+    python3 -c "import pygame; pygame.display.init(); drv = pygame.display.get_driver(); exit(0 if drv not in ('offscreen', 'dummy') else 1)" >/dev/null 2>&1
+}
+
+if has_functional_pygame; then
+    status_msg "Funktionsfaehiges Pygame ist verfuegbar."
 else
-    status_msg "Pygame fehlt auf dem System!"
-    status_msg "Installiere Pygame... (WLAN aktiv halten)"
+    status_msg "Pygame fehlt oder unterstuetzt keine Handheld-Displays!"
+    status_msg "Installiere Pygame-CE mit nativer KMSDRM-Unterstuetzung... (WLAN aktiv halten)"
 
     # Method A: apt-get (Debian / Ubuntu / ArkOS on R36S)
     if command -v apt-get > /dev/null 2>&1; then
@@ -39,13 +43,15 @@ else
         $ESUDO apt-get install -y python3-pygame python3-pip mpv ffmpeg
     fi
 
-    # Method B: pip (Fallback if apt-get failed or on non-Debian OS)
-    if ! python3 -c "import pygame" > /dev/null 2>&1; then
-        status_msg "Versuche pip-Installation von pygame..."
+    # Method B: pip (prefer pygame-ce for KMSDRM/console support on muOS & embedded Linux)
+    if ! has_functional_pygame; then
+        status_msg "Installiere pygame-ce via pip..."
         if ! python3 -m pip --version > /dev/null 2>&1; then
             $ESUDO apt-get install -y python3-pip >/dev/null 2>&1 || python3 -m ensurepip --upgrade >/dev/null 2>&1
         fi
-        python3 -m pip install pygame --no-cache-dir || python3 -m pip install pygame-ce --no-cache-dir
+        # Remove legacy wheel if it had no display support
+        python3 -m pip uninstall -y pygame >/dev/null 2>&1
+        python3 -m pip install pygame-ce --no-cache-dir || python3 -m pip install pygame --no-cache-dir
     fi
 fi
 

@@ -7,6 +7,19 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.4] - 2026-10-22
+
+### Behoben
+- **Vollbild-Videoansicht auf Handhelds mit Hardware-Layer (Knulli / Mali GPU / TrimUI):**
+  - **Exklusiver Display-Wechsel für mpv:** Auf Linux-Handhelds ohne Fenstermanager blockierte das aktive Pygame-Fenster (Mali EGL Surface) den Zugriff von mpv auf den Bildschirm. Pygame gibt das Display vor dem Start von mpv nun temporär frei (`pygame.display.quit()`), sodass mpv exklusiven Vollbild-Hardwarezugriff (`--vo=gpu,drm,sdl`) erhält. Nach Beendigung des Videos wird das Pygame-Display sofort nahtlos wiederhergestellt.
+  - **Tasten-Exit bei Invertiert-Layout korrigiert:** In `back_keys` wurde `K_ESCAPE` für das invertierte Layout entfernt, sodass nur noch die tatsächliche Zurück-Taste das Video beendet und B wie vorgesehen pausiert/weiterspielt.
+- **Automatisches Upgrade auf `pygame-ce` für muOS:**
+  - Auf muOS fehlten dem standardmäßigen pip-Pygame-Wheel die Linux-Konsolentreiber (`kmsdrm`), weshalb SDL auf `offscreen` verfiel.
+  - Sowohl `install.sh` als auch `pr0-retroconsole.sh` erkennen nun automatisch, ob Pygame nur im `offscreen`-Modus läuft, und installieren gezielt `pygame-ce` (Community Edition), welches vollen KMSDRM- und Konsolen-Support für Embedded Handhelds mitbringt.
+  - `mod_${CFW_NAME}.txt` von PortMaster wird nun beim Start geladen und alle PortMaster-Pfade auf muOS (`/mnt/mmc/MUOS/PortMaster/...`) werden in `PATH` und `LD_LIBRARY_PATH` eingebunden.
+
+---
+
 ## [0.4.3] - 2026-10-21
 
 ### Behoben
