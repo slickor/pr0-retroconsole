@@ -69,12 +69,21 @@ def build_release(output_dir: Path | None = None) -> tuple[Path, Path]:
     shutil.copy2(PROJECT_ROOT / "pr0-retroconsole.sh", staging_dir / "pr0-retroconsole.sh")
     ensure_unix_lf(staging_dir / "pr0-retroconsole.sh")
 
-    # 3. Copy src/ (skip __pycache__ and .pyc)
+    # 3. Copy src/ and tools/ (skip __pycache__ and .pyc)
     shutil.copytree(
         PROJECT_ROOT / "src",
         staging_app / "src",
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
     )
+
+    if (PROJECT_ROOT / "tools").is_dir():
+        shutil.copytree(
+            PROJECT_ROOT / "tools",
+            staging_app / "tools",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
+        for py_f in (staging_app / "tools").glob("*.py"):
+            ensure_unix_lf(py_f)
 
     # 4. Copy assets/ (ignore promotional/presentation graphics)
     if (PROJECT_ROOT / "assets").is_dir():

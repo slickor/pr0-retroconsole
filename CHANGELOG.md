@@ -7,6 +7,24 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.5] - 2026-10-22
+
+### Behoben
+- **Schwarzer Bildschirm auf muOS (TrimUI Brick) behoben:**
+  - **Mali-Hardwaretreiber statt manylinux-Offscreen:** Pip-Wheels (`pygame` und `pygame-ce`) bündeln vorkompilierte `libSDL2.so`-Bibliotheken für generische Linux-Server, denen hardwarenahe Konsolentreiber wie Mali fehlen (Fehlermeldung: `mali not available`, woraufhin SDL auf `driver=offscreen` auswich).
+  - **Automatisches Patcher- & Preload-System (`tools/patch_sdl2.py`):**
+    - Ermittelt beim Start dynamisch die native System-`libSDL2.so` von muOS (welche über vollen Mali-Treiber-Support verfügt).
+    - Lädt diese via `LD_PRELOAD` und `ctypes.CDLL(..., mode=RTLD_GLOBAL)` vor dem Pygame-Import in den globalen Adressraum.
+    - Ersetzt/verlinkt automatisch die gebündelten Bibliotheken in `pygame_ce.libs/` auf die native muOS-Systembibliothek.
+  - **Display-Initialisierung für Mali-Framebuffer:**
+    - Priorisiert den Treiber `mali` vor `kmsdrm` auf Mali-Handhelds.
+    - Unterstützt native Fullscreen-Panelauflösungen (z. B. 1024×768 auf TrimUI Brick) mit automatischer Anpassung und hardwarebeschleunigtem Scaling.
+  - **Bereinigung von Berechtigungen und Pfaden:**
+    - `chmod 666 /dev/mali*` im Launcher hinzugefügt.
+    - Saubere Priorisierung von Systembibliotheken vor PortMaster-Ordnern in `LD_LIBRARY_PATH`.
+
+---
+
 ## [0.4.4] - 2026-10-22
 
 ### Behoben

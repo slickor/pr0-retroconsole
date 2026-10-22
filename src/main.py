@@ -17,14 +17,25 @@ import threading
 import time
 from pathlib import Path
 from typing import Any
-import pygame
 
-# Ensure src/ is on path
+# Ensure root, src/ and libs/ are on sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 if str(ROOT_DIR / "src") not in sys.path:
     sys.path.insert(0, str(ROOT_DIR / "src"))
 if str(ROOT_DIR / "libs") not in sys.path:
     sys.path.insert(0, str(ROOT_DIR / "libs"))
+
+# On Linux handhelds (muOS, TrimUI, Knulli, ArkOS), preload native system libSDL2
+# before pygame loads so hardware Mali/KMSDRM drivers are used instead of offscreen
+try:
+    from tools.patch_sdl2 import preload_system_sdl2
+    preload_system_sdl2()
+except Exception:
+    pass
+
+import pygame
 
 from api import Pr0API, FLAG_SFW, FLAG_NSFW, FLAG_NSFL, FLAG_NSFP
 from cache import MediaCache
@@ -295,31 +306,30 @@ class Pr0App:
             # On Linux handhelds (TrimUI / muOS / ArkOS / Knulli), ensure a REAL physical display is used
             flags = (pygame.FULLSCREEN | pygame.DOUBLEBUF) if (self.fullscreen or is_handheld) else 0
             res_cfg = str(self.config.get("resolution", "auto")).lower()
+            scaled_flag = getattr(pygame, "SCALED", 0)
 
             def try_create_surface(req_w: int, req_h: int, fl: int) -> pygame.Surface | None:
-                try:
-                    # On handhelds with res_cfg == 'auto', (0, 0) allows KMSDRM/SDL to use native panel resolution
-                    size = (0, 0) if (res_cfg == "auto" and (fl & pygame.FULLSCREEN)) else (req_w, req_h)
-                    surf = pygame.display.set_mode(size, fl)
-                    drv = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else ""
-                    if drv in ("offscreen", "dummy"):
-                        # 'offscreen' or 'dummy' does not render to any physical screen
-                        return None
-                    return surf
-                except Exception as ex:
-                    logger.debug("try_create_surface failed (%dx%d, flags=%d): %s", req_w, req_h, fl, ex)
-                    return None
+                # Prioritize (0, 0) native panel resolution when auto, but also test exact (req_w, req_h)
+                sizes_to_test = [(0, 0), (req_w, req_h)] if (res_cfg == "auto" and (fl & pygame.FULLSCREEN)) else [(req_w, req_h), (0, 0)]
+                for sz in sizes_to_test:
+                    for test_fl in [fl, fl | scaled_flag, fl & ~pygame.DOUBLEBUF]:
+                        try:
+                            surf = pygame.display.set_mode(sz, test_fl)
+                            drv = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else ""
+                            if drv not in ("offscreen", "dummy"):
+                                return surf
+                        except Exception as ex:
+                            logger.debug("try_create_surface failed (%s, flags=%d): %s", sz, test_fl, ex)
+                return None
 
             # First attempt: Try current SDL driver / environment
             self.screen = try_create_surface(self.width, self.height, flags)
-            if self.screen is None:
-                # Try without DOUBLEBUF
-                self.screen = try_create_surface(self.width, self.height, pygame.FULLSCREEN if self.fullscreen else 0)
 
             # If current driver is offscreen/dummy or failed, try hardware display backends
             if self.screen is None:
                 logger.warning("Default display driver is not a physical screen (or failed). Trying hardware video backends...")
-                hw_drivers = ["kmsdrm", "mali", "fbcon", "wayland", "x11"]
+                # Note: Prioritize 'mali' for TrimUI (muOS, Knulli, CrossMix) and 'kmsdrm' for ArkOS
+                hw_drivers = ["mali", "kmsdrm", "fbcon", "wayland", "x11"]
                 for hw_cand in hw_drivers:
                     try:
                         os.environ["SDL_VIDEODRIVER"] = hw_cand
@@ -330,10 +340,8 @@ class Pr0App:
                         test_drv = pygame.display.get_driver() if hasattr(pygame.display, "get_driver") else ""
                         if test_drv not in ("offscreen", "dummy"):
                             self.screen = try_create_surface(self.width, self.height, flags)
-                            if self.screen is None:
-                                self.screen = try_create_surface(self.width, self.height, pygame.FULLSCREEN if self.fullscreen else 0)
                             if self.screen is not None:
-                                logger.info("Successfully activated hardware display backend: %s", hw_cand)
+                                logger.info("Successfully activated hardware display backend: %s (driver=%s)", hw_cand, test_drv)
                                 break
                     except Exception as ex_drv:
                         logger.info("Hardware driver candidate '%s' not usable: %s", hw_cand, ex_drv)

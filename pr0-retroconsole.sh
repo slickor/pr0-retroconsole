@@ -64,17 +64,26 @@ exec > >(tee "$GAMEDIR/log.txt") 2>&1
 
 # Ensure uinput, DRM, and framebuffer are accessible
 if [ -n "$ESUDO" ]; then
-  $ESUDO chmod 666 /dev/uinput /dev/dri/* /dev/fb* 2>/dev/null
+  $ESUDO chmod 666 /dev/uinput /dev/dri/* /dev/fb* /dev/mali* 2>/dev/null
 else
-  chmod 666 /dev/uinput /dev/dri/* /dev/fb* 2>/dev/null
+  chmod 666 /dev/uinput /dev/dri/* /dev/fb* /dev/mali* 2>/dev/null
 fi
 
 export PYTHONUNBUFFERED=1
 export PYTHONPATH="$GAMEDIR/libs:$PYTHONPATH"
 
+# Ensure native system libSDL2 with Mali/KMSDRM hardware support is linked & preloaded (crucial for muOS & TrimUI)
+if [ -f "$GAMEDIR/tools/patch_sdl2.py" ]; then
+  SYSTEM_SDL2=$(python3 "$GAMEDIR/tools/patch_sdl2.py" --find-only 2>/dev/null)
+  if [ -n "$SYSTEM_SDL2" ]; then
+    export LD_PRELOAD="$SYSTEM_SDL2"
+    python3 "$GAMEDIR/tools/patch_sdl2.py" --patch >/dev/null 2>&1
+  fi
+fi
+
 # Handheld media player and shared library search paths (TrimUI Smart Pro, CrossMix, muOS, PortMaster)
 export PATH="/mnt/SDCARD/System/bin:/mnt/sdcard/System/bin:/mnt/mmc/MUOS/PortMaster/tools:/mnt/mmc/ports/PortMaster/tools:/opt/system/Tools/PortMaster/tools:/roms/ports/PortMaster/tools:$PATH"
-export LD_LIBRARY_PATH="/lib:/lib64:/usr/lib:/mnt/SDCARD/System/lib:/mnt/sdcard/System/lib:/mnt/mmc/MUOS/PortMaster:/mnt/mmc/MUOS/PortMaster/libs:/mnt/mmc/ports/PortMaster:/mnt/mmc/ports/PortMaster/libs:/mnt/SDCARD/Apps/PortMaster/PortMaster:/mnt/sdcard/Apps/PortMaster/PortMaster:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="/usr/lib:/lib:/usr/lib/aarch64-linux-gnu:/lib/aarch64-linux-gnu:/mnt/SDCARD/System/lib:/mnt/sdcard/System/lib:/mnt/mmc/MUOS/PortMaster:/mnt/mmc/MUOS/PortMaster/libs:/mnt/mmc/ports/PortMaster:/mnt/mmc/ports/PortMaster/libs:/mnt/SDCARD/Apps/PortMaster/PortMaster:/mnt/sdcard/Apps/PortMaster/PortMaster:$LD_LIBRARY_PATH"
 
 # Function to verify if Pygame has functional console/hardware display driver (not headless offscreen/dummy)
 has_functional_display() {

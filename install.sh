@@ -24,16 +24,30 @@ status_msg "========================================="
 status_msg "  pr0-retroconsole: Ersteinrichtung      "
 status_msg "========================================="
 
+# Helper: Apply system SDL2 patch on handheld Linux (muOS / TrimUI / Knulli / ArkOS)
+apply_sdl_patch() {
+    if [ -f "$GAMEDIR/tools/patch_sdl2.py" ]; then
+        local sys_sdl
+        sys_sdl=$(python3 "$GAMEDIR/tools/patch_sdl2.py" --find-only 2>/dev/null)
+        if [ -n "$sys_sdl" ]; then
+            export LD_PRELOAD="$sys_sdl"
+            python3 "$GAMEDIR/tools/patch_sdl2.py" --patch >/dev/null 2>&1
+        fi
+    fi
+}
+
+apply_sdl_patch
+
 # 1. Check if pygame or pygame-ce with functional display support is available
 has_functional_pygame() {
     python3 -c "import pygame; pygame.display.init(); drv = pygame.display.get_driver(); exit(0 if drv not in ('offscreen', 'dummy') else 1)" >/dev/null 2>&1
 }
 
 if has_functional_pygame; then
-    status_msg "Funktionsfaehiges Pygame ist verfuegbar."
+    status_msg "Funktionsfaehiges Pygame mit Display-Treiber ist verfuegbar."
 else
     status_msg "Pygame fehlt oder unterstuetzt keine Handheld-Displays!"
-    status_msg "Installiere Pygame-CE mit nativer KMSDRM-Unterstuetzung... (WLAN aktiv halten)"
+    status_msg "Installiere Pygame-CE mit nativer KMSDRM-/Mali-Unterstuetzung... (WLAN aktiv halten)"
 
     # Method A: apt-get (Debian / Ubuntu / ArkOS on R36S)
     if command -v apt-get > /dev/null 2>&1; then
@@ -52,6 +66,7 @@ else
         # Remove legacy wheel if it had no display support
         python3 -m pip uninstall -y pygame >/dev/null 2>&1
         python3 -m pip install pygame-ce --no-cache-dir || python3 -m pip install pygame --no-cache-dir
+        apply_sdl_patch
     fi
 fi
 

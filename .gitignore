@@ -20,6 +20,7 @@ bin/
 cache/
 /tmp/pr0cache
 .cache/
+temp/
 
 # OS generated
 .DS_Store
