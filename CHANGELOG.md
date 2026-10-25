@@ -11,6 +11,29 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.9] - 2026-10-25
+
+### Hinzugefügt
+- **Universeller automatischer SD-Karten-Installer (`install.ps1`):**
+  - **Intelligente Partitions- & CFW-Erkennung:** Erkennt automatisch jede eingesteckte SD-Karte und ordnet sie der korrekten Custom Firmware (CFW) zu:
+    - **muOS (Split-Architektur):** Trennt automatisch zwischen Starter-Skript (`ROMS\ports\pr0-retroconsole.sh`) und App-Ordner (`\ports\pr0-retroconsole\`).
+    - **Knulli & Batocera (Multi-Partition):** Erkennt Dual-Partitionen, ignoriert automatisch die Boot-Partition (`KNULLI`/`BATOCERA`) und wählt zielsicher die Datenpartition (`SHARE\roms\ports\`).
+    - **ArkOS (Single- & Dual-SD):** Erkennt `EASYROMS` und navigiert Starter & App direkt nach `ports\`.
+    - **TrimUI (CrossMix-OS & MinUI):** Unterstützt `Data\ports\` für Game-Assets und `Roms\PORTS\` / `Emus\PORTS\` für Starter.
+    - **AmberELEC, ROCKNIX & JELOS:** Unterstützt `GAMES` und verschachtelte `roms\ports\`-Strukturen.
+  - **Automatischer Login- & Einstellungs-Schutz:** Eine bestehende `config.json` auf der SD-Karte wird bei Updates niemals überschrieben; Zugangsdaten, Filter und Themes bleiben dauerhaft erhalten.
+  - **Garantierte Unix-LF-Konvertierung:** Alle `.sh`, `.py`, `.gptk`, `.conf` und `.json` Dateien werden beim Kopiervorgang automatisch auf Unix-Zeilenumbrüche (`\n`) normalisiert.
+- **Offizielle Amtssprache & 100% Vibecode Siegel:**
+  - Verbindliche Deklaration der pr0-Amtssprache (Deutsch) und der 100% Vibecode-Philosophie in sämtlichen Projektdateien, Quellcode-Docstrings, im Handheld-Einstellungsmenü (`START`) sowie auf allen Präsentationsgrafiken (Poster & Banner).
+
+### Verbessert
+- **Robuste Pfadauflösung im Launcher (`pr0-retroconsole.sh`):**
+  - Erweiterte `GAMEDIR`-Auflösung für `Data/ports/pr0-retroconsole` (CrossMix & MinUI), `/storage/roms/ports/` (AmberELEC & ROCKNIX) und `/storage/games-external/` (ROCKNIX Slot 2).
+- **Entwickler-Skripte bereinigt:**
+  - Lokale Hilfsskripte (`run.bat`, `run.ps1`, `push.ps1`, `export_sd_ports_check.ps1`) sauber in `dev/` verschoben und vom Git-Tracking ausgeschlossen.
+
+---
+
 ## [0.4.8] - 2026-10-25
 
 ### Behoben
