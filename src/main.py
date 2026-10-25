@@ -283,7 +283,8 @@ class Pr0App:
         self.login_status_color: tuple[int, int, int] | None = None
         self.login_success_pending: tuple[str, str] | None = None
 
-        # Network auto-retry tracking
+        # Feed error & network auto-retry tracking
+        self.feed_error: str | None = None
         self._last_feed_retry: float = time.time()
         self._feed_retry_count: int = 0
 
@@ -933,7 +934,12 @@ class Pr0App:
                         self.config["flags"] = self.flags
                         save_config(self.config, self.config_path)
                         flag_name = Pr0API.get_flag_string(self.flags)
-                        if self.flags == 2:
+                        if not self.api.is_authenticated and (self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP)):
+                            if not (self.flags & FLAG_SFW):
+                                self.set_toast(f"Filter: {flag_name} (Login in [START] nötig!)", COLOR_ORANGE, duration=2.5)
+                            else:
+                                self.set_toast(f"Filter: {flag_name} (NSFW erfordert Login)", COLOR_ORANGE, duration=2.0)
+                        elif self.flags == 2:
                             self.set_toast("Filter: Nur NSFW", COLOR_ORANGE, duration=1.5)
                         elif self.flags == 4:
                             self.set_toast("Filter: Nur NSFL", COLOR_ORANGE, duration=1.5)
@@ -958,7 +964,10 @@ class Pr0App:
                     self.config["flags"] = self.flags
                     save_config(self.config, self.config_path)
                     flag_name = Pr0API.get_flag_string(self.flags)
-                    self.set_toast(f"Filter: Nur {flag_name}", COLOR_ORANGE, duration=1.5)
+                    if not self.api.is_authenticated and target in ("nsfw", "nsfl", "pol"):
+                        self.set_toast(f"Filter: Nur {flag_name} (Login in [START] nötig!)", COLOR_ORANGE, duration=3.0)
+                    else:
+                        self.set_toast(f"Filter: Nur {flag_name}", COLOR_ORANGE, duration=1.5)
                     self.items = []
                     self.selected_idx = 0
                     self.grid_scroll_row = 0
@@ -1016,7 +1025,17 @@ class Pr0App:
                 self._update_inline_video()
                 return
             else:
-                # Feed is empty / connection error: manual reload
+                # Feed is empty: if login is required for current filter, open Settings/Login directly
+                if (not self.api.is_authenticated) and (
+                    self.feed_error == "auth_required"
+                    or bool(self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP) and not (self.flags & FLAG_SFW))
+                ):
+                    self.state = STATE_SETTINGS
+                    self.settings_idx = 0
+                    self.set_toast("Bitte zuerst anmelden für NSFW/NSFL!", COLOR_ORANGE, duration=2.5)
+                    return
+
+                # Otherwise manual reload
                 self.set_toast("Verbinde mit pr0gramm...", COLOR_ORANGE, duration=2.5)
                 self._last_feed_retry = time.time()
                 self._feed_retry_count = 0
@@ -1047,7 +1066,12 @@ class Pr0App:
             save_config(self.config, self.config_path)
 
             flag_name = Pr0API.get_flag_string(self.flags)
-            if self.flags == 2:
+            if not self.api.is_authenticated and (self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP)):
+                if not (self.flags & FLAG_SFW):
+                    self.set_toast(f"Filter: {flag_name} (Login in [START] nötig!)", COLOR_ORANGE, duration=2.5)
+                else:
+                    self.set_toast(f"Filter: {flag_name} (NSFW erfordert Login)", COLOR_ORANGE, duration=2.0)
+            elif self.flags == 2:
                 self.set_toast("Filter: Nur NSFW", COLOR_ORANGE, duration=1.5)
             elif self.flags == 4:
                 self.set_toast("Filter: Nur NSFL", COLOR_ORANGE, duration=1.5)
@@ -1280,6 +1304,8 @@ class Pr0App:
         for f_val, f_lbl in flags_options:
             if f_val == self.flags:
                 flag_display = f_lbl
+                if not self.api.is_authenticated and (f_val & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP)):
+                    flag_display += " (Login nötig)"
                 break
 
         if self.api.is_authenticated:
@@ -1481,6 +1507,11 @@ class Pr0App:
                     self.promoted = int(new_val)
                 elif item_id == "flags":
                     self.flags = int(new_val)
+                    if not self.api.is_authenticated and (self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP)):
+                        if not (self.flags & FLAG_SFW):
+                            self.set_toast("Hinweis: Reines NSFW/NSFL erfordert Anmeldung!", COLOR_ORANGE, duration=2.5)
+                        else:
+                            self.set_toast("Hinweis: NSFW erfordert Anmeldung!", COLOR_ORANGE, duration=2.0)
                 elif item_id == "scroll_speed":
                     self.scroll_speed = str(new_val)
                     self.scroll_step = 45 if self.scroll_speed == "normal" else (85 if self.scroll_speed == "schnell" else 150)
@@ -1570,6 +1601,11 @@ class Pr0App:
                     self.promoted = int(new_val)
                 elif item_id == "flags":
                     self.flags = int(new_val)
+                    if not self.api.is_authenticated and (self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP)):
+                        if not (self.flags & FLAG_SFW):
+                            self.set_toast("Hinweis: Reines NSFW/NSFL erfordert Anmeldung!", COLOR_ORANGE, duration=2.5)
+                        else:
+                            self.set_toast("Hinweis: NSFW erfordert Anmeldung!", COLOR_ORANGE, duration=2.0)
                 elif item_id == "scroll_speed":
                     self.scroll_speed = str(new_val)
                     self.scroll_step = 45 if self.scroll_speed == "normal" else (85 if self.scroll_speed == "schnell" else 150)
@@ -1605,6 +1641,17 @@ class Pr0App:
                 result = task.get("result", {})
                 if task_type in ("feed_fresh", "feed_append"):
                     raw_items = result.get("items", [])
+                    err = result.get("error")
+                    if err == "auth_required":
+                        self.feed_error = "auth_required"
+                        logger.info("Feed error: Authentication required for active flags=%d", self.flags)
+                        if task_type == "feed_fresh" and not self.items:
+                            self.set_toast("Anmeldung erforderlich für NSFW/NSFL!", COLOR_ORANGE, duration=3.0)
+                    elif raw_items:
+                        self.feed_error = None
+                    else:
+                        self.feed_error = err
+
                     self.at_end = result.get("atEnd", False)
                     if raw_items:
                         self.last_api_item_id = raw_items[-1]["id"]
@@ -1654,7 +1701,11 @@ class Pr0App:
                     self.is_fetching_feed = False
                     if self.items:
                         self._feed_retry_count = 0
-                    self.set_toast("Fehler beim Laden des Feeds!", COLOR_RED, duration=2.5)
+                    if not self.items and (not self.api.is_authenticated and (self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP)) and not (self.flags & FLAG_SFW)):
+                        self.feed_error = "auth_required"
+                        self.set_toast("Anmeldung erforderlich für NSFW/NSFL!", COLOR_ORANGE, duration=3.0)
+                    else:
+                        self.set_toast("Fehler beim Laden des Feeds!", COLOR_RED, duration=2.5)
                 elif task_type == "post_info":
                     self.is_loading_info = False
                     self.set_toast("Fehler beim Laden der Kommentare!", COLOR_RED, duration=2.0)
@@ -1684,6 +1735,9 @@ class Pr0App:
                 self.grid_scroll_row,
                 header_focused=self.header_focus,
                 is_loading=self.is_fetching_feed,
+                is_authenticated=self.api.is_authenticated,
+                flags=self.flags,
+                feed_error=self.feed_error,
             )
             self.ui.render_header(
                 mode_label=mode_label,
@@ -1698,11 +1752,22 @@ class Pr0App:
                 header_idx=self.header_idx,
             )
             if not self.items:
-                footer_hints = [
-                    ("A", "Neu laden"),
-                    ("START", "Setup"),
-                    ("B", "Beenden"),
-                ]
+                requires_login = (not self.api.is_authenticated) and (
+                    self.feed_error == "auth_required"
+                    or bool(self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP) and not (self.flags & FLAG_SFW))
+                )
+                if requires_login:
+                    footer_hints = [
+                        ("START", "Setup / Login"),
+                        ("A", "Anmelden"),
+                        ("B", "Beenden"),
+                    ]
+                else:
+                    footer_hints = [
+                        ("A", "Neu laden"),
+                        ("START", "Setup"),
+                        ("B", "Beenden"),
+                    ]
             elif self.header_focus:
                 footer_hints = [
                     ("D-Pad", "Wählen"),
@@ -1877,7 +1942,11 @@ class Pr0App:
             self._process_background_tasks()
 
             # Auto-retry initial feed load if empty and not currently fetching (e.g. WiFi connects a few seconds after boot)
-            if not self.items and not self.is_fetching_feed and self.state == STATE_GRID and self._feed_retry_count < 6:
+            is_auth_needed = (not self.api.is_authenticated) and (
+                self.feed_error == "auth_required"
+                or bool(self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP) and not (self.flags & FLAG_SFW))
+            )
+            if not self.items and not self.is_fetching_feed and self.state == STATE_GRID and self._feed_retry_count < 6 and not is_auth_needed:
                 now = time.time()
                 if now - self._last_feed_retry > 3.0:
                     self._last_feed_retry = now

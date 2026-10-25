@@ -1,14 +1,15 @@
 # pr0-retroconsole
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-banner.png?v=0.4.5" alt="pr0-retroconsole Banner" width="100%">
+  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-banner.png?v=0.4.6" alt="pr0-retroconsole Banner" width="100%">
 </p>
 
 <p align="center">
   <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20muOS%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.4.5-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.4.6-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Roadmap-2026-blueviolet?style=for-the-badge" alt="Roadmap"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
 </p>
 
@@ -20,7 +21,7 @@
 <summary>📱 <b>Infografik & Feature-Poster ansehen (Klicken zum Ausklappen)</b></summary>
 <br>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-poster.png?v=0.4.5" alt="pr0-retroconsole Infografik-Poster" width="850">
+  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-poster.png?v=0.4.6" alt="pr0-retroconsole Infografik-Poster" width="850">
 </p>
 </details>
 

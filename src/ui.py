@@ -18,9 +18,9 @@ from typing import Any
 import pygame
 
 try:
-    from api import Pr0API
+    from api import Pr0API, FLAG_SFW, FLAG_NSFW, FLAG_NSFL, FLAG_NSFP
 except ImportError:
-    from .api import Pr0API
+    from .api import Pr0API, FLAG_SFW, FLAG_NSFW, FLAG_NSFL, FLAG_NSFP
 
 try:
     from version import VERSION
@@ -665,13 +665,21 @@ class UIRenderer:
         scroll_row: int,
         header_focused: bool = False,
         is_loading: bool = False,
+        is_authenticated: bool = False,
+        flags: int = 1,
+        feed_error: str | None = None,
     ) -> None:
         """Render the thumbnail grid viewport with smooth row scrolling."""
         self.screen.fill(self.color_bg)
 
         if not items:
-            card_w = min(int(460 * self.scale), self.width - 32)
-            card_h = int(130 * self.scale)
+            requires_login = (not is_authenticated) and (
+                feed_error == "auth_required"
+                or bool(flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP) and not (flags & FLAG_SFW))
+            )
+
+            card_w = min(int(540 * self.scale), self.width - 24)
+            card_h = int(145 * self.scale) if requires_login else int(130 * self.scale)
             card_x = (self.width - card_w) // 2
             card_y = (self.height - card_h) // 2
             card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
@@ -679,26 +687,53 @@ class UIRenderer:
             pygame.draw.rect(self.screen, self.color_card, card_rect, border_radius=8)
             pygame.draw.rect(self.screen, self.color_card_border, card_rect, width=1, border_radius=8)
 
-            msg = "Lade Beiträge von pr0gramm..." if is_loading else "Keine Beiträge geladen (WLAN prüfen)"
-            sub_msg = "Warte auf Antwort vom Server..." if is_loading else "[A] Drücken zum Neuladen   •   [START] Setup"
+            if is_loading:
+                msg = "Lade Beiträge von pr0gramm..."
+                detail_msg = "Warte auf Antwort vom Server..."
+                sub_msg = ""
+                msg_color = self.color_accent
+            elif requires_login:
+                msg = "Anmeldung erforderlich für NSFW/NSFL"
+                detail_msg = "pr0gramm blendet 18+ Inhalte nur für angemeldete Accounts ein."
+                sub_msg = "[START] Drücken für Setup & QR-Code Express-Login"
+                msg_color = self.color_accent
+            else:
+                msg = "Keine Beiträge geladen (WLAN prüfen)"
+                detail_msg = "Konnte keine Verbindung zum pr0gramm-Server herstellen."
+                sub_msg = "[A] Drücken zum Neuladen   •   [START] Setup"
+                msg_color = self.color_red
 
+            # 1. Headline
             mw = self.font_bold.size(msg)[0]
             self.draw_text(
                 self.screen,
                 self.font_bold,
                 msg,
-                self.color_accent if is_loading else self.color_red,
-                ((self.width - mw) // 2, card_y + int(32 * self.scale)),
+                msg_color,
+                ((self.width - mw) // 2, card_y + int(24 * self.scale)),
             )
 
-            smw = self.font_small.size(sub_msg)[0]
-            self.draw_text(
-                self.screen,
-                self.font_small,
-                sub_msg,
-                self.color_text_dim if is_loading else self.color_text,
-                ((self.width - smw) // 2, card_y + int(72 * self.scale)),
-            )
+            # 2. Detail line
+            if detail_msg:
+                dmw = self.font_small.size(detail_msg)[0]
+                self.draw_text(
+                    self.screen,
+                    self.font_small,
+                    detail_msg,
+                    self.color_text_dim,
+                    ((self.width - dmw) // 2, card_y + int(60 * self.scale)),
+                )
+
+            # 3. Action / Guidance line
+            if sub_msg:
+                smw = self.font_small.size(sub_msg)[0]
+                self.draw_text(
+                    self.screen,
+                    self.font_small,
+                    sub_msg,
+                    self.color_text if requires_login else self.color_text_dim,
+                    ((self.width - smw) // 2, card_y + int(96 * self.scale)),
+                )
             return
 
         total_items = len(items)

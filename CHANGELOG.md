@@ -7,6 +7,24 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.6] - 2026-10-25
+
+### Behoben
+- **Präziser Hinweis bei nicht angemeldeten NSFW/NSFL-Aufrufen (Kein irreführendes "WLAN prüfen"):**
+  - **Ursache behoben:** Wenn ein Nutzer ohne Login (z. B. nach einer Neuinstallation ohne `config.json`) auf NSFW, NSFL oder POL umschaltete, wies die pr0gramm-API den Request mit HTTP 403 ("Nicht eingeloggt") ab. Die App zeigte fälschlicherweise "Keine Beiträge geladen (WLAN prüfen)", obwohl das WLAN funktionierte.
+  - **403-Erkennung in der API:** In `Pr0API.get_items` wird HTTP 403 / `nsfwRequiresLogin` nun gezielt als `auth_required` identifiziert, statt generische Verbindungsfehler zu werfen.
+  - **Dedizierter Empty-Feed-Screen:**
+    - Zeigt eine klare Info-Karte: *"Anmeldung erforderlich für NSFW/NSFL"* mit pr0-Orange-Hervorhebung.
+    - Erklärungstext: *"pr0gramm blendet 18+ Inhalte nur für eingeloggte Accounts ein."*
+    - Handlungsanweisung: `[START] Drücken für Setup & QR-Code Express-Login`.
+    - Drücken von `A` auf dem leeren Screen öffnet direkt das Einstellungs-/Login-Menü.
+  - **Toast-Hinweise beim Filterwechsel:**
+    - Beim Umschalten auf NSFW/NSFL in der Header-Leiste, per Schnellwahl (`L1`/`R1`) oder im Einstellungsmenü weist ein Toast-Hinweis direkt darauf hin, dass ein Login nötig ist.
+    - Im Einstellungsmenü wird der Filter bei fehlendem Login mit `(Login nötig)` gekennzeichnet.
+  - **Auto-Retry-Schutz:** Verhindert endlose Hintergrund-Wiederholungsversuche bei Feeds, die zwingend einen Login erfordern.
+
+---
+
 ## [0.4.5] - 2026-10-22
 
 ### Behoben

@@ -155,6 +155,7 @@ def build_release(output_dir: Path | None = None) -> tuple[Path, Path]:
         "requirements.txt",
         "README.md",
         "CHANGELOG.md",
+        "ROADMAP.md",
         "LICENSE",
     ]
     for fn in files_to_copy:

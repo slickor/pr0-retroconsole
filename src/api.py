@@ -258,11 +258,31 @@ class Pr0API:
         try:
             resp = self._request_with_fallback("GET", "/items/get", params=params)
             data = resp.json()
+            api_err = data.get("error")
+            if api_err in ("forbidden", "nsfwRequiresLogin"):
+                logger.info("Feed access restricted: %s (%s)", api_err, data.get("msg", "Nicht eingeloggt"))
+                return {
+                    "items": [],
+                    "atEnd": False,
+                    "error": "auth_required",
+                    "msg": data.get("msg", "Nicht eingeloggt"),
+                }
             return {
                 "items": data.get("items", []),
                 "atEnd": bool(data.get("atEnd", False)),
-                "error": None,
+                "error": api_err,
             }
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code == 403:
+                logger.info("Feed access forbidden (403): User not logged in for requested flags=%d", flags)
+                return {
+                    "items": [],
+                    "atEnd": False,
+                    "error": "auth_required",
+                    "msg": "Nicht eingeloggt",
+                }
+            logger.error("HTTP error fetching items: %s", e)
+            return {"items": [], "atEnd": False, "error": str(e)}
         except Exception as e:
             logger.error("Error fetching items: %s", e)
             return {"items": [], "atEnd": False, "error": str(e)}
