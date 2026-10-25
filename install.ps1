@@ -327,11 +327,16 @@ $hasEmusDir = Test-Path -LiteralPath (Join-Path $driveRoot "Emus")
 $siblingBootKnulli = Get-PSDrive -PSProvider FileSystem | Where-Object { 
     $_.Name -ne "C" -and (Test-Path (Join-Path $_.Root "knulli-boot.conf"))
 }
+$siblingBootArkOS = Get-PSDrive -PSProvider FileSystem | Where-Object { 
+    $_.Name -ne "C" -and ((Test-Path (Join-Path $_.Root "rk3326-r36s-linux.dtb")) -or (Test-Path (Join-Path $_.Root "boot.ini")))
+}
 
 if ($hasKnulliConf -or $siblingBootKnulli -or $targetDrive.Label -ieq "KNULLI") {
     $cfwName = "Knulli (TrimUI / Linux Handheld)"
 } elseif ($hasBatoceraConf -or $targetDrive.Label -ieq "BATOCERA") {
     $cfwName = "Batocera"
+} elseif ($targetDrive.Label -ieq "EASYROMS" -or $siblingBootArkOS) {
+    $cfwName = "ArkOS (R36S / RK3326)"
 } elseif ($hasMuOSDir) {
     $cfwName = "muOS"
 } elseif ($hasEmusDir) {
