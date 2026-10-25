@@ -11,6 +11,16 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.11] - 2026-10-25
+
+### Behoben
+- **Knulli / TrimUI Smart Pro Vollbild-Videoausgabe endgültig repariert:**
+  - **Mali FBDEV Display-Anbindung (`--vo=sdl,gpu`):** TrimUI Smart Pro (Allwinner A133) nutzt proprietäre Mali FBDEV EGL-Treiber ohne DRM-KMS (`Option gpu-context: 'drm' isn't supported`). Durch den Wechsel auf `--vo=sdl,gpu` greift mpv direkt auf den systemeigenen SDL2-Mali-Treiber (`driver=mali`) zu – exakt wie Pygame selbst.
+  - **`--input-gamepad=no` behebt SDL-Subsystemkonflikt:** Verhindert, dass mpvs interne Gamepad-Erkennung das SDL2-Joystick-Subsystem vorzeitig initialisiert und dadurch `vo_sdl` mit *'Another component is using SDL already'* blockiert.
+  - **Reparatur der mpv-Tastenbindings:** Syntaxfehler in `_generate_mpv_input_conf()` behoben, durch den A/B-Tasten ohne Action-Befehle generiert wurden.
+
+---
+
 ## [0.4.10] - 2026-10-25
 
 ### Hinzugefügt

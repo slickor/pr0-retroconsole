@@ -675,16 +675,16 @@ class VideoPlayer:
             quit_action = "GAMEPAD_ACTION_DOWN"
             play_btn = "GAMEPAD_B"
             quit_btn = "GAMEPAD_A"
-            key_play = "b\nB"
-            key_quit = "a\nA"
+            key_play = "b cycle pause\nB cycle pause"
+            key_quit = "a quit\nA quit"
         else:
             # Standard (Nintendo / TrimUI / Knulli / ArkOS: A=Play/Pause, B=Quit/Back)
             play_action = "GAMEPAD_ACTION_DOWN"
             quit_action = "GAMEPAD_ACTION_RIGHT"
             play_btn = "GAMEPAD_A"
             quit_btn = "GAMEPAD_B"
-            key_play = "a\nA"
-            key_quit = "b\nB"
+            key_play = "a cycle pause\nA cycle pause"
+            key_quit = "b quit\nB quit"
 
         return f"""# pr0-retroconsole mpv controls ({self.button_layout})
 # Seeking controls (10% and 30% jumps with visual OSD progress bar)
@@ -768,29 +768,26 @@ GAMEPAD_START cycle pause
                 except Exception:
                     pass
 
-                # In Linux console / handhelds without X11 or Wayland, use KMS/DRM gpu-context
-                if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
-                    gpu_ctx = "auto"
-                else:
-                    gpu_ctx = "drm"
-
                 # Fullscreen playback for TrimUI Smart Pro, R36S, ArkOS, Knulli, muOS
+                # Using --vo=sdl,gpu with --input-gamepad=no:
+                # 1. vo_sdl natively binds to Mali FBDEV (TrimUI) or KMSDRM (ArkOS) via system SDL2
+                # 2. --input-gamepad=no prevents SDL joystick conflict with vo_sdl ('Another component is using SDL')
+                # 3. gptokeyb handles gamepad controls cleanly via keyboard emulation
                 cmd = [
                     self.player_path,
                     "--fs",
                     "--hwdec=no",
-                    "--vo=gpu-next,gpu",
-                    f"--gpu-context={gpu_ctx}",
+                    "--vo=sdl,gpu",
                     "--ao=alsa,oss,sdl",
                     "--volume=100",
                     "--video-sync=audio",
-                    "--framedrop=vo",
+                    "--framedrop=yes",
                     "--cache=yes",
                     "--demuxer-max-bytes=30M",
                     "--demuxer-readahead-secs=8",
                     "--loop-file=inf",
                     "--input-terminal=yes",
-                    "--input-gamepad=yes",
+                    "--input-gamepad=no",
                     "--msg-level=all=warn",
                     "--osd-level=1",
                     "--osd-bar=yes",
