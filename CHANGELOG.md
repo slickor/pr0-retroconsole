@@ -11,6 +11,15 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.12] - 2026-10-25
+
+### Behoben
+- **R36S / ArkOS Vollbild-Video Fortschrittsbalken (`ffplay`) behoben:**
+  - **Entfernung des fehlerhaften `drawbox`-Filters:** Auf Systemen mit `ffplay` (wie ArkOS auf dem R36S) führte ein softwareseitiger `-vf drawbox`-Filter dazu, dass direkt beim Umschalten in den Vollbildmodus ein statischer 100%-Balken dauerhaft am unteren Bildrand festfror.
+  - **Performance & Stotter-Schutz:** Durch das Weglassen des Software-Filters entfällt der unnötige CPU-Overhead auf dem RK3326-Prozessor des R36S vollständig; ALSA-Audio-Underruns werden verhindert und Videos spielen in voller Bildhöhe flüssig und nativ ab.
+
+---
+
 ## [0.4.11] - 2026-10-25
 
 ### Behoben

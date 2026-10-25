@@ -108,7 +108,7 @@ flowchart TD
 * [x] **Kommentare verfassen & Antworten:** Direkte Antworten auf Kommentare oder neue Hauptbeiträge verfassen via Bildschirmtastatur oder externer USB-Tastatur.
 * [x] **Optimistisches UI-Feedback:** Sofortige visuelle Aktualisierung der Benis-Punkte im Interface mit asynchroner API-Synchronisation.
 
-### Phase 5: Multi-CFW Kompatibilität, Installer & Hardware-Layer (v0.4.1 – v0.4.11)
+### Phase 5: Multi-CFW Kompatibilität, Installer & Hardware-Layer (v0.4.1 – v0.4.12)
 * [x] **Multi-Domain Resilienz:** Automatischer DNS- und CDN-Fallback zwischen `pr0gramm.com` und `pr0.app` mit Wiederholungsversuchen.
 * [x] **Knulli Fullscreen-Video-Fix:** Exklusiver Display-Wechsel (`pygame.display.quit()` vor dem Start von mpv und nahtloser Re-Init danach), um Mali EGL Surface Collisions zu verhindern.
 * [x] **muOS Native Mali GPU Support (TrimUI Brick):** Automatischer Patcher (`tools/patch_sdl2.py`), der Pygame vor dem Start an die native System-`libSDL2.so` bindet (`LD_PRELOAD` & `RTLD_GLOBAL`), womit das Problem des `driver=offscreen` der manylinux-Wheels gelöst wurde.
@@ -126,7 +126,7 @@ flowchart TD
 ## 🚀 Künftige Ziele & Roadmap
 
 ```
-v0.4.11 (Aktuell) ──► v0.4.12+ (Stabilität & Tests) ──► v0.5.0 (Interaktion & Suche) ──► v0.6.0 (Media & Audio) ──► v1.0.0 (Gold Master)
+v0.4.12 (Aktuell) ──► v0.4.13+ (Stabilität & Tests) ──► v0.5.0 (Interaktion & Suche) ──► v0.6.0 (Media & Audio) ──► v1.0.0 (Gold Master)
 ```
 
 ---

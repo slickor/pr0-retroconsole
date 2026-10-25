@@ -846,12 +846,6 @@ GAMEPAD_START cycle pause
                     "-seek_interval",
                     str(seek_step),
                 ]
-                if duration > 0:
-                    vf_filter = (
-                        f"drawbox=x=0:y=ih-6:w=iw:h=6:color=black@0.6:t=fill,"
-                        f"drawbox=x=0:y=ih-6:w=iw*min(1\\,max(0\\,t/{duration:.2f})):h=6:color=0xEE4D2D:t=fill"
-                    )
-                    cmd.extend(["-vf", vf_filter])
                 if cookie_hdr and media_url.startswith("http"):
                     cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
                 cmd.append(media_url)
@@ -870,12 +864,6 @@ GAMEPAD_START cycle pause
                     "-seek_interval",
                     str(seek_step),
                 ]
-                if duration > 0:
-                    vf_filter = (
-                        f"drawbox=x=0:y=ih-6:w=iw:h=6:color=black@0.6:t=fill,"
-                        f"drawbox=x=0:y=ih-6:w=iw*min(1\\,max(0\\,t/{duration:.2f})):h=6:color=0xEE4D2D:t=fill"
-                    )
-                    cmd.extend(["-vf", vf_filter])
                 if cookie_hdr and media_url.startswith("http"):
                     cmd.extend(["-headers", f"Cookie: {cookie_hdr}\r\n"])
                 cmd.append(media_url)

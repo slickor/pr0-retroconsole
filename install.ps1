@@ -120,7 +120,7 @@ function Test-IsBootPartition {
 Write-Pr0Header
 
 # 1. Quell-Version ermitteln
-$version = "0.4.11"
+$version = "0.4.12"
 try {
     $verOut = python -c "import src.version; print(src.version.VERSION)" 2>$null
     if ($verOut) { $version = "$verOut".Trim() }
