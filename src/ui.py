@@ -1627,9 +1627,9 @@ class UIRenderer:
         self.draw_text(self.screen, self.font_small, mode_tag, self.color_accent, (self.width - mt_w - 14, center_y - self.font_small.get_height() // 2))
 
         # Main Card Area
-        view_y = self.header_height + 8
-        card_w = min(600, self.width - 20)
-        card_h = self.height - self.header_height - self.footer_height - 16
+        view_y = self.header_height + int(8 * self.scale)
+        card_w = min(int(740 * self.scale), self.width - int(24 * self.scale)) if mode == "qr" else min(int(560 * self.scale), self.width - int(24 * self.scale))
+        card_h = self.height - self.header_height - self.footer_height - int(16 * self.scale)
         start_x = (self.width - card_w) // 2
         card_rect = pygame.Rect(start_x, view_y, card_w, card_h)
         pygame.draw.rect(self.screen, self.color_card, card_rect, border_radius=8)
@@ -1639,13 +1639,13 @@ class UIRenderer:
             # -------------------------------------------------------------
             # QR / Smartphone Mode
             # -------------------------------------------------------------
-            qr_size = min(int(170 * self.scale), card_h - 40, card_w // 2 - 20)
-            qr_x = start_x + int(18 * self.scale)
-            qr_y = view_y + (card_h - qr_size) // 2 - int(10 * self.scale)
+            qr_size = min(int(200 * self.scale), card_h - int(48 * self.scale), int(card_w * 0.36))
+            qr_x = start_x + int(28 * self.scale)
+            qr_y = view_y + (card_h - qr_size) // 2
 
             # Draw QR Code if available
             if qr_surface:
-                border_px = 6
+                border_px = max(4, int(6 * self.scale))
                 qr_bg_rect = pygame.Rect(qr_x - border_px, qr_y - border_px, qr_size + border_px * 2, qr_size + border_px * 2)
                 pygame.draw.rect(self.screen, (255, 255, 255), qr_bg_rect, border_radius=6)
                 if qr_surface.get_size() != (qr_size, qr_size):
@@ -1656,47 +1656,61 @@ class UIRenderer:
             else:
                 placeholder_rect = pygame.Rect(qr_x, qr_y, qr_size, qr_size)
                 pygame.draw.rect(self.screen, self.color_bg, placeholder_rect, border_radius=6)
-                self.draw_text(self.screen, self.font_small, "QR lädt...", self.color_text_dim, (qr_x + 20, qr_y + qr_size // 2))
+                self.draw_text(self.screen, self.font_small, "QR lädt...", self.color_text_dim, (qr_x + int(20 * self.scale), qr_y + qr_size // 2))
 
             # Right Column: Instructions
-            right_x = qr_x + qr_size + int(24 * self.scale)
-            right_w = start_x + card_w - right_x - int(14 * self.scale)
-            cur_y = view_y + int(16 * self.scale)
+            right_x = qr_x + qr_size + int(32 * self.scale)
+            right_w = start_x + card_w - right_x - int(24 * self.scale)
+
+            # Calculate content height to vertically center the right column with the QR code
+            title_h = self.font_bold.get_height()
+            small_h = self.font_small.get_height()
+            url_box_h = int(32 * self.scale)
+            total_content_h = (
+                title_h + int(10 * self.scale) +
+                small_h + int(6 * self.scale) +
+                small_h + int(10 * self.scale) +
+                url_box_h + int(12 * self.scale) +
+                small_h + int(6 * self.scale) +
+                small_h + int(16 * self.scale) +
+                small_h
+            )
+            cur_y = view_y + max(int(18 * self.scale), (card_h - total_content_h) // 2)
 
             self.draw_text(self.screen, self.font_bold, "Mit Smartphone im selben WLAN anmelden", self.color_text, (right_x, cur_y))
-            cur_y += int(24 * self.scale)
+            cur_y += title_h + int(10 * self.scale)
 
-            step1 = "1. Scanne den QR-Code mit der Handy-Kamera"
+            step1 = "1. QR-Code mit der Smartphone-Kamera scannen"
             self.draw_text(self.screen, self.font_small, step1, self.color_text_dim, (right_x, cur_y))
-            cur_y += int(18 * self.scale)
+            cur_y += small_h + int(6 * self.scale)
 
-            step2 = "oder tippe folgende Adresse im Handy-Browser ein:"
+            step2 = "oder Adresse im Browser am Handy aufrufen:"
             self.draw_text(self.screen, self.font_small, step2, self.color_text_dim, (right_x, cur_y))
-            cur_y += int(20 * self.scale)
+            cur_y += small_h + int(10 * self.scale)
 
-            # URL Highlight Box
-            url_box_h = int(30 * self.scale)
-            url_rect = pygame.Rect(right_x, cur_y, min(right_w, int(300 * self.scale)), url_box_h)
+            # URL Highlight Box (dynamically sized with generous padding, never overflowing)
+            url_w = self.font_bold.size(url)[0]
+            url_box_w = min(right_w, max(url_w + int(36 * self.scale), int(260 * self.scale)))
+            url_rect = pygame.Rect(right_x, cur_y, url_box_w, url_box_h)
             pygame.draw.rect(self.screen, self.color_bg, url_rect, border_radius=6)
             pygame.draw.rect(self.screen, self.color_accent, url_rect, width=1, border_radius=6)
-            url_w = self.font_bold.size(url)[0]
             self.draw_text(self.screen, self.font_bold, url, self.color_accent, (url_rect.centerx - url_w // 2, url_rect.centery - self.font_bold.get_height() // 2))
-            cur_y += url_box_h + int(14 * self.scale)
+            cur_y += url_box_h + int(12 * self.scale)
 
-            step3 = "2. Auf der Seite Benutzername, Passwort & Captcha eingeben"
+            step3 = "2. Auf dem Handy Benutzername, Passwort & Captcha eingeben"
             self.draw_text(self.screen, self.font_small, step3, self.color_text_dim, (right_x, cur_y))
-            cur_y += int(16 * self.scale)
+            cur_y += small_h + int(6 * self.scale)
 
-            step4 = "-> Handheld loggt sich automatisch sofort ein!"
+            step4 = "✓ Handheld loggt sich sofort automatisch ein!"
             self.draw_text(self.screen, self.font_small, step4, self.color_green, (right_x, cur_y))
-            cur_y += int(24 * self.scale)
+            cur_y += small_h + int(16 * self.scale)
 
             # Live status badge
             stat_txt = status_message or "Warte auf Verbindung vom Smartphone..."
             stat_color = status_color or self.color_text_dim
             dot_color = self.color_accent if (pygame.time.get_ticks() // 600) % 2 == 0 else self.color_text_dim
-            pygame.draw.circle(self.screen, dot_color, (right_x + 6, cur_y + 7), 4)
-            self.draw_text(self.screen, self.font_small, stat_txt, stat_color, (right_x + 16, cur_y))
+            pygame.draw.circle(self.screen, dot_color, (right_x + int(6 * self.scale), cur_y + int(7 * self.scale)), int(4 * self.scale))
+            self.draw_text(self.screen, self.font_small, stat_txt, stat_color, (right_x + int(18 * self.scale), cur_y))
 
             self.render_footer(
                 hints=[

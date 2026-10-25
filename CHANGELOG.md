@@ -7,6 +7,17 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.8] - 2026-10-25
+
+### Behoben
+- **QR-Code Login Bildschirm Layout & Skalierung korrigiert:**
+  - **Vollständig responsive Card-Größe:** Die Hauptkarte für den QR-Code-Login war zuvor fälschlicherweise auf maximal 600 Pixel beschränkt (`min(600, width - 20)`). Auf 1280×720-Displays (wie dem TrimUI Smart Pro) führte dies dazu, dass der graue Hintergrundkasten zu schmal war, der Text viel zu weit nach rechts gerückt erschien und über den Kasten hinausragte. Nun skaliert die Karte dynamisch (`card_w = min(int(740 * scale), width - 24)` $\approx$ 1110 Pixel auf 720p).
+  - **Dynamische URL-Box gegen Text-Überlauf:** Die IP-Adresse (`http://<ip>:<port>`) ragte aus ihrem Umrandungskasten heraus. Die Box passt sich nun dynamisch an die Textbreite an (`url_box_w = min(right_w, max(url_w + 36 * scale, 260 * scale))`), sodass die IP-Adresse mit beidseitigem Abstand zentriert und umrahmt im Kasten dargestellt wird.
+  - **Perfekte vertikale Zentrierung:** QR-Code und rechte Anleitungsspalte sind nun optisch und mathematisch zentriert aufeinander abgestimmt.
+  - **Höher aufgelöster QR-Code:** Für hochauflösende Panels wird der QR-Code nun mit vergrößerter Basisauflösung erzeugt, was das Scannen per Smartphone-Kamera noch schneller und zuverlässiger macht.
+
+---
+
 ## [0.4.7] - 2026-10-25
 
 ### Behoben

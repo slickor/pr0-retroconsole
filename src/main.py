@@ -720,7 +720,7 @@ class Pr0App:
         ip, port = self.auth_server.start()
         self.auth_url = f"http://{ip}:{port}"
         if generate_qr_surface:
-            self.qr_surface = generate_qr_surface(self.auth_url, target_size=int(170 * self.ui.scale))
+            self.qr_surface = generate_qr_surface(self.auth_url, target_size=int(220 * self.ui.scale))
 
         # Pre-fetch captcha for direct mode in background
         threading.Thread(target=self._fetch_direct_captcha, daemon=True).start()
