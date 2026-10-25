@@ -97,6 +97,21 @@ function Get-PartitionName {
     return "Kein Name"
 }
 
+function Test-IsBootPartition {
+    param ([string]$RootPath, [string]$Label)
+    if ($Label -match '^(KNULLI|BATOCERA|BOOT|RECALBOX)$') { return $true }
+    if (Test-Path -LiteralPath (Join-Path $RootPath "knulli-boot.conf")) { return $true }
+    if (Test-Path -LiteralPath (Join-Path $RootPath "batocera-boot.conf")) { return $true }
+    if (Test-Path -LiteralPath (Join-Path $RootPath "recalbox-boot.conf")) { return $true }
+    # Hat boot/ aber weder roms noch ports
+    if ((Test-Path -LiteralPath (Join-Path $RootPath "boot")) -and 
+        (-not (Test-Path -LiteralPath (Join-Path $RootPath "roms"))) -and 
+        (-not (Test-Path -LiteralPath (Join-Path $RootPath "ports")))) {
+        return $true
+    }
+    return $false
+}
+
 Write-Pr0Header
 
 # 1. Quell-Version ermitteln
@@ -107,7 +122,7 @@ try {
 } catch {}
 Write-Host "Quell-Version: v$version ($ProjectRoot)`n" -ForegroundColor Gray
 
-# 2. Externe Laufwerke suchen
+# 2. Externe Laufwerke suchen & intelligente Partitionsauswahl
 $targetDrive = $null
 if ($Drive) {
     $cleanDrive = $Drive.TrimEnd(':\') + ":\"
@@ -124,14 +139,14 @@ if ($Drive) {
 }
 
 while (-not $targetDrive) {
-    $availableDrives = Get-PSDrive -PSProvider FileSystem | Where-Object { 
+    $rawDrives = Get-PSDrive -PSProvider FileSystem | Where-Object { 
         $_.Name -ne "C" -and $_.Root -and (Test-Path $_.Root)
     }
 
-    if (-not $availableDrives) {
+    if (-not $rawDrives) {
         Write-Host "Keine externen Laufwerke oder SD-Karten gefunden!" -ForegroundColor Yellow
         Write-Host "Bitte SD-Karte einlegen oder Laufwerksbuchstaben manuell eingeben." -ForegroundColor Gray
-        $in = Read-Host "`nLaufwerksbuchstabe (z.B. 'D') oder [R] fuer erneuten Scan, [Q] zum Beenden"
+        $in = Read-Host "`nLaufwerksbuchstabe (z.B. 'E') oder [R] fuer erneuten Scan, [Q] zum Beenden"
         if ($in -ieq "q") { exit 0 }
         if ($in -and $in -ine "r") {
             $manualRoot = "$($in.TrimEnd(':\'))`:\"
@@ -149,32 +164,68 @@ while (-not $targetDrive) {
         continue
     }
 
-    if ($availableDrives.Count -eq 1) {
-        $single = $availableDrives[0]
-        $freeGb = [math]::Round($single.Free / 1GB, 1)
+    # Laufwerksinformationen sammeln und zwischen Boot- und Daten-Partitionen unterscheiden
+    $driveInfoList = [System.Collections.Generic.List[PSCustomObject]]::new()
+    foreach ($d in $rawDrives) {
+        $label = Get-PartitionName -DriveLetter $d.Name
+        $isBoot = Test-IsBootPartition -RootPath $d.Root -Label $label
+        $freeGb = [math]::Round($d.Free / 1GB, 1)
+        $hasGames = (Test-Path (Join-Path $d.Root "roms")) -or 
+                    (Test-Path (Join-Path $d.Root "ports")) -or 
+                    (Test-Path (Join-Path $d.Root "Emus")) -or
+                    ($label -ieq "SHARE")
+
+        $driveInfoList.Add([PSCustomObject]@{
+            DriveObj = $d
+            Name     = $d.Name
+            Root     = $d.Root
+            Label    = $label
+            FreeGb   = $freeGb
+            IsBoot   = $isBoot
+            HasGames = $hasGames
+        })
+    }
+
+    # Intelligente Knulli / Batocera Erkennung (Boot- vs. SHARE-Partition)
+    $dataPartitions = @($driveInfoList | Where-Object { -not $_.IsBoot })
+    $bootPartitions = @($driveInfoList | Where-Object { $_.IsBoot })
+
+    if ($driveInfoList.Count -eq 1) {
+        $single = $driveInfoList[0]
         $targetDrive = [PSCustomObject]@{
             Name  = $single.Name
             Root  = $single.Root
-            Label = Get-PartitionName -DriveLetter $single.Name
+            Label = $single.Label
         }
-        Write-Host "Automatisch erkannte SD-Karte: $($targetDrive.Name): ($($targetDrive.Label)) - $freeGb GB frei" -ForegroundColor Green
+        Write-Host "Automatisch erkannte SD-Karte: $($targetDrive.Name): ($($targetDrive.Label)) - $($single.FreeGb) GB frei" -ForegroundColor Green
+    } elseif ($dataPartitions.Count -eq 1 -and $bootPartitions.Count -ge 1) {
+        # Z.B. Knulli mit D: (KNULLI Boot) und E: (SHARE Daten)
+        $autoData = $dataPartitions[0]
+        $bootNames = ($bootPartitions | ForEach-Object { "$($_.Name): ($($_.Label))" }) -join ", "
+        Write-Host "Multi-Partition SD-Karte erkannt (Boot: $bootNames)" -ForegroundColor Cyan
+        Write-Host "Automatisch ausgewaehlte Spiele-Partition: $($autoData.Name): ($($autoData.Label)) - $($autoData.FreeGb) GB frei" -ForegroundColor Green
+        $targetDrive = [PSCustomObject]@{
+            Name  = $autoData.Name
+            Root  = $autoData.Root
+            Label = $autoData.Label
+        }
     } else {
+        # Mehrere echte Daten-Partitionen oder unklare Lage
         Write-Host "Mehrere externe Laufwerke gefunden:" -ForegroundColor Cyan
-        for ($i = 0; $i -lt $availableDrives.Count; $i++) {
-            $d = $availableDrives[$i]
-            $label = Get-PartitionName -DriveLetter $d.Name
-            $freeGb = [math]::Round($d.Free / 1GB, 1)
-            Write-Host "  [$($i+1)] $($d.Name): ($label) - $freeGb GB frei" -ForegroundColor White
+        for ($i = 0; $i -lt $driveInfoList.Count; $i++) {
+            $di = $driveInfoList[$i]
+            $tag = if ($di.IsBoot) { "[System/Boot - nicht fuer Spiele]" } elseif ($di.HasGames) { "[Spiele/ROMs Partition]" } else { "" }
+            Write-Host "  [$($i+1)] $($di.Name): ($($di.Label)) - $($di.FreeGb) GB frei  $tag" -ForegroundColor White
         }
-        $choice = Read-Host "`nNummer der gewuenschten SD-Karte waehlen [1-$($availableDrives.Count)] (Standard: 1)"
+        $choice = Read-Host "`nNummer der gewuenschten SD-Karte waehlen [1-$($driveInfoList.Count)] (Standard: 1)"
         if (-not $choice) { $choice = 1 }
         $idx = [int]$choice - 1
-        if ($idx -ge 0 -and $idx -lt $availableDrives.Count) {
-            $sel = $availableDrives[$idx]
+        if ($idx -ge 0 -and $idx -lt $driveInfoList.Count) {
+            $sel = $driveInfoList[$idx]
             $targetDrive = [PSCustomObject]@{
                 Name  = $sel.Name
                 Root  = $sel.Root
-                Label = Get-PartitionName -DriveLetter $sel.Name
+                Label = $sel.Label
             }
         } else {
             Write-Host "Ungueltige Auswahl!" -ForegroundColor Red
@@ -182,7 +233,7 @@ while (-not $targetDrive) {
     }
 }
 
-# 3. Intelligente Analyse des Laufwerks (muOS, Knulli, ArkOS, TrimUI CrossMix)
+# 3. Intelligente Analyse des gewaehlten Laufwerks (muOS, Knulli, ArkOS, TrimUI CrossMix)
 Write-Host "`nAnalysiere SD-Karten-Struktur auf $($targetDrive.Name): ($($targetDrive.Label))..." -ForegroundColor Cyan
 $driveRoot = $targetDrive.Root
 
@@ -191,8 +242,8 @@ $discoveredPortsMap = @{} # LowerCase Pfad -> DirectoryInfo
 
 # Standard-Kandidatenpfade
 $standardSubDirs = @(
-    "ROMS\ports",
     "roms\ports",
+    "ROMS\ports",
     "roms2\ports",
     "userdata\roms\ports",
     "Emus\PORTS",
@@ -213,7 +264,7 @@ foreach ($sub in $standardSubDirs) {
     }
 }
 
-# Flacher 2-Ebenen-Scan nach weiteren ports-Ordnern (falls abweichende Gross-/Kleinschreibung oder Struktur)
+# Flacher 2-Ebenen-Scan nach weiteren ports-Ordnern (falls abweichende Gross-/Kleinschreibung)
 if ($discoveredPortsMap.Count -eq 0) {
     $lvl1Dirs = Get-ChildItem -LiteralPath $driveRoot -Directory -Force -ErrorAction SilentlyContinue |
                 Where-Object { $global:IgnoredDirNames -notcontains $_.Name }
@@ -267,19 +318,31 @@ if (-not $existingAppDir -and $hasRootPorts) {
     }
 }
 
-# 3c. Layout ermitteln (muOS Split Architecture vs. Unified Architecture)
-$isMuOS = $false
+# 3c. CFW-Systemidentifikation
+$cfwName = "Unbekannt"
+$hasKnulliConf = Test-Path -LiteralPath (Join-Path $driveRoot "system\knulli.conf")
+$hasBatoceraConf = Test-Path -LiteralPath (Join-Path $driveRoot "system\batocera.conf")
 $hasMuOSDir = Test-Path -LiteralPath (Join-Path $driveRoot "MUOS")
-$romsPortsDir = $allPortsDirs | Where-Object { $_.FullName -match "roms[\\/]ports" } | Select-Object -First 1
+$hasEmusDir = Test-Path -LiteralPath (Join-Path $driveRoot "Emus")
+$siblingBootKnulli = Get-PSDrive -PSProvider FileSystem | Where-Object { 
+    $_.Name -ne "C" -and (Test-Path (Join-Path $_.Root "knulli-boot.conf"))
+}
 
-if ($hasMuOSDir -or ($hasRootPorts -and $romsPortsDir)) {
-    $isMuOS = $true
+if ($hasKnulliConf -or $siblingBootKnulli -or $targetDrive.Label -ieq "KNULLI") {
+    $cfwName = "Knulli (TrimUI / Linux Handheld)"
+} elseif ($hasBatoceraConf -or $targetDrive.Label -ieq "BATOCERA") {
+    $cfwName = "Batocera"
+} elseif ($hasMuOSDir) {
+    $cfwName = "muOS"
+} elseif ($hasEmusDir) {
+    $cfwName = "TrimUI (CrossMix-OS)"
 }
 
 # Mismatch-Analyse fuer muOS / PortMaster:
 # Pruefe ob vorhandene Starter-Dateien in ROMS\ports auf Ordner in \ports verweisen
+$romsPortsDir = $allPortsDirs | Where-Object { $_.FullName -match "roms[\\/]ports" } | Select-Object -First 1
 $splitModeDetected = $false
-if ($romsPortsDir -and $hasRootPorts) {
+if ($romsPortsDir -and $hasRootPorts -and ($hasMuOSDir -or -not $hasKnulliConf)) {
     $shInLauncherDir = Get-ChildItem -LiteralPath $romsPortsDir.FullName -File -Filter "*.sh" -Force -ErrorAction SilentlyContinue
     foreach ($sh in $shInLauncherDir) {
         $content = Get-Content -LiteralPath $sh.FullName -Raw -ErrorAction SilentlyContinue
@@ -297,38 +360,44 @@ if ($romsPortsDir -and $hasRootPorts) {
 # 3d. Bestimme finale Zielpfade
 $destLauncherDir  = $null
 $destAppParentDir = $null
-$detectedSystem   = "Unbekannt"
+$detectedSystem   = $cfwName
 
 if ($existingLauncher -and $existingAppDir) {
     # Bestehende Installation wiederverwenden
     $destLauncherDir  = [System.IO.Path]::GetDirectoryName($existingLauncher)
     $destAppParentDir = [System.IO.Path]::GetDirectoryName($existingAppDir)
-    if ($destLauncherDir.ToLowerInvariant() -eq $destAppParentDir.ToLowerInvariant()) {
-        $detectedSystem = "Unified Architecture (Bestehende Installation)"
-    } else {
-        $detectedSystem = "muOS Split Architecture (Bestehende Installation)"
-    }
-} elseif ($isMuOS -or $splitModeDetected) {
+    $archType = if ($destLauncherDir.ToLowerInvariant() -eq $destAppParentDir.ToLowerInvariant()) { "Unified Architecture" } else { "Split Architecture" }
+    $detectedSystem   = "$cfwName ($archType - Bestehende Installation)"
+} elseif ($hasMuOSDir -or $splitModeDetected) {
     # muOS Neuinstallation: Starter in ROMS\ports, App in ports\pr0-retroconsole
     $destLauncherDir  = if ($romsPortsDir) { $romsPortsDir.FullName } else { Join-Path $driveRoot "ROMS\ports" }
     $destAppParentDir = $rootPortsDir
-    $detectedSystem   = "muOS (Starter: ROMS\ports | App: ports\)"
+    $detectedSystem   = "muOS (Split: ROMS\ports + ports\)"
 } elseif ($allPortsDirs.Count -eq 1) {
-    # Ein einzelner gefundener Ports-Ordner
+    # Ein einzelner gefundener Ports-Ordner (Knulli, CrossMix, ArkOS etc.)
     $singlePorts      = $allPortsDirs[0]
     $destLauncherDir  = $singlePorts.FullName
     $destAppParentDir = $singlePorts.FullName
-    if ($singlePorts.FullName -match "userdata") { $detectedSystem = "Knulli / Batocera" }
-    elseif ($singlePorts.FullName -match "Emus") { $detectedSystem = "TrimUI (CrossMix-OS)" }
-    elseif ($singlePorts.FullName -match "roms2") { $detectedSystem = "ArkOS / AmberELEC (SD2)" }
-    elseif ($singlePorts.FullName -match "roms") { $detectedSystem = "ArkOS / AmberELEC" }
-    else { $detectedSystem = "PortMaster" }
+    if ($cfwName -eq "Unbekannt") {
+        if ($singlePorts.FullName -match "userdata") { $detectedSystem = "Knulli / Batocera" }
+        elseif ($singlePorts.FullName -match "Emus") { $detectedSystem = "TrimUI (CrossMix-OS)" }
+        elseif ($singlePorts.FullName -match "roms2") { $detectedSystem = "ArkOS / AmberELEC (SD2)" }
+        elseif ($singlePorts.FullName -match "roms") { $detectedSystem = "ArkOS / AmberELEC" }
+        else { $detectedSystem = "PortMaster" }
+    } else {
+        $detectedSystem = "$cfwName (Unified Architecture)"
+    }
 } elseif ($allPortsDirs.Count -gt 1) {
     # Mehrere Ports-Ordner gefunden
-    $knulli   = $allPortsDirs | Where-Object { $_.FullName -match "userdata" } | Select-Object -First 1
-    $crossmix = $allPortsDirs | Where-Object { $_.FullName -match "Emus" } | Select-Object -First 1
+    $romsPorts = $allPortsDirs | Where-Object { $_.FullName -match "roms[\\/]ports" } | Select-Object -First 1
+    $knulli    = $allPortsDirs | Where-Object { $_.FullName -match "userdata" } | Select-Object -First 1
+    $crossmix  = $allPortsDirs | Where-Object { $_.FullName -match "Emus" } | Select-Object -First 1
     
-    if ($knulli) {
+    if ($hasKnulliConf -and $romsPorts) {
+        $destLauncherDir  = $romsPorts.FullName
+        $destAppParentDir = $romsPorts.FullName
+        $detectedSystem   = "Knulli (TrimUI / Linux Handheld)"
+    } elseif ($knulli) {
         $destLauncherDir  = $knulli.FullName
         $destAppParentDir = $knulli.FullName
         $detectedSystem   = "Knulli / Batocera"
