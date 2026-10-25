@@ -99,13 +99,16 @@ function Get-PartitionName {
 
 function Test-IsBootPartition {
     param ([string]$RootPath, [string]$Label)
-    if ($Label -match '^(KNULLI|BATOCERA|BOOT|RECALBOX)$') { return $true }
+    if ($Label -match '^(KNULLI|BATOCERA|BOOT|RECALBOX|ROCKNIX|JELOS|EMUELEC)$') { return $true }
     if (Test-Path -LiteralPath (Join-Path $RootPath "knulli-boot.conf")) { return $true }
     if (Test-Path -LiteralPath (Join-Path $RootPath "batocera-boot.conf")) { return $true }
     if (Test-Path -LiteralPath (Join-Path $RootPath "recalbox-boot.conf")) { return $true }
-    # Hat boot/ aber weder roms noch ports
-    if ((Test-Path -LiteralPath (Join-Path $RootPath "boot")) -and 
+    if (Test-Path -LiteralPath (Join-Path $RootPath "rocknix-boot.conf")) { return $true }
+    if (Test-Path -LiteralPath (Join-Path $RootPath "jelos-boot.conf")) { return $true }
+    # Hat boot/ oder dtb/ aber weder roms noch ports
+    if (((Test-Path -LiteralPath (Join-Path $RootPath "boot")) -or (Test-Path -LiteralPath (Join-Path $RootPath "dtb"))) -and 
         (-not (Test-Path -LiteralPath (Join-Path $RootPath "roms"))) -and 
+        (-not (Test-Path -LiteralPath (Join-Path $RootPath "Roms"))) -and 
         (-not (Test-Path -LiteralPath (Join-Path $RootPath "ports")))) {
         return $true
     }
@@ -171,9 +174,11 @@ while (-not $targetDrive) {
         $isBoot = Test-IsBootPartition -RootPath $d.Root -Label $label
         $freeGb = [math]::Round($d.Free / 1GB, 1)
         $hasGames = (Test-Path (Join-Path $d.Root "roms")) -or 
+                    (Test-Path (Join-Path $d.Root "Roms")) -or 
                     (Test-Path (Join-Path $d.Root "ports")) -or 
-                    (Test-Path (Join-Path $d.Root "Emus")) -or
-                    ($label -ieq "SHARE")
+                    (Test-Path (Join-Path $d.Root "Emus")) -or 
+                    (Test-Path (Join-Path $d.Root "Data\ports")) -or 
+                    ($label -in @("SHARE", "EASYROMS", "GAMES", "ROMS", "PORTMASTER"))
 
         $driveInfoList.Add([PSCustomObject]@{
             DriveObj = $d
@@ -244,10 +249,12 @@ $discoveredPortsMap = @{} # LowerCase Pfad -> DirectoryInfo
 $standardSubDirs = @(
     "roms\ports",
     "ROMS\ports",
+    "Roms\PORTS",
     "roms2\ports",
     "userdata\roms\ports",
     "Emus\PORTS",
     "MUOS\ports",
+    "Data\ports",
     "ports"
 )
 
@@ -320,27 +327,48 @@ if (-not $existingAppDir -and $hasRootPorts) {
 
 # 3c. CFW-Systemidentifikation
 $cfwName = "Unbekannt"
-$hasKnulliConf = Test-Path -LiteralPath (Join-Path $driveRoot "system\knulli.conf")
+$hasKnulliConf   = Test-Path -LiteralPath (Join-Path $driveRoot "system\knulli.conf")
 $hasBatoceraConf = Test-Path -LiteralPath (Join-Path $driveRoot "system\batocera.conf")
-$hasMuOSDir = Test-Path -LiteralPath (Join-Path $driveRoot "MUOS")
-$hasEmusDir = Test-Path -LiteralPath (Join-Path $driveRoot "Emus")
+$hasAmberConf    = Test-Path -LiteralPath (Join-Path $driveRoot "system\amberelec.conf")
+$hasRocknixConf  = (Test-Path -LiteralPath (Join-Path $driveRoot "system\rocknix")) -or (Test-Path -LiteralPath (Join-Path $driveRoot "rocknix-boot.conf"))
+$hasJelosConf    = (Test-Path -LiteralPath (Join-Path $driveRoot "system\jelos")) -or (Test-Path -LiteralPath (Join-Path $driveRoot "jelos-boot.conf"))
+$hasMuOSDir      = Test-Path -LiteralPath (Join-Path $driveRoot "MUOS")
+$hasEmusDir      = Test-Path -LiteralPath (Join-Path $driveRoot "Emus")
+$hasDataPorts    = Test-Path -LiteralPath (Join-Path $driveRoot "Data\ports")
+$hasTrimuiDir    = Test-Path -LiteralPath (Join-Path $driveRoot "trimui")
+
 $siblingBootKnulli = Get-PSDrive -PSProvider FileSystem | Where-Object { 
     $_.Name -ne "C" -and (Test-Path (Join-Path $_.Root "knulli-boot.conf"))
 }
 $siblingBootArkOS = Get-PSDrive -PSProvider FileSystem | Where-Object { 
     $_.Name -ne "C" -and ((Test-Path (Join-Path $_.Root "rk3326-r36s-linux.dtb")) -or (Test-Path (Join-Path $_.Root "boot.ini")))
 }
+$siblingBootRocknix = Get-PSDrive -PSProvider FileSystem | Where-Object { 
+    $_.Name -ne "C" -and (Test-Path (Join-Path $_.Root "rocknix-boot.conf"))
+}
 
 if ($hasKnulliConf -or $siblingBootKnulli -or $targetDrive.Label -ieq "KNULLI") {
     $cfwName = "Knulli (TrimUI / Linux Handheld)"
 } elseif ($hasBatoceraConf -or $targetDrive.Label -ieq "BATOCERA") {
     $cfwName = "Batocera"
+} elseif ($hasAmberConf -or $targetDrive.Label -ieq "GAMES") {
+    $cfwName = "AmberELEC (RG351 / RK3326)"
+} elseif ($hasRocknixConf -or $siblingBootRocknix -or $targetDrive.Label -ieq "ROCKNIX") {
+    $cfwName = "ROCKNIX (RK3566 / Handheld)"
+} elseif ($hasJelosConf -or $targetDrive.Label -ieq "JELOS") {
+    $cfwName = "JELOS"
 } elseif ($targetDrive.Label -ieq "EASYROMS" -or $siblingBootArkOS) {
-    $cfwName = "ArkOS (R36S / RK3326)"
+    if ($siblingBootArkOS) {
+        $cfwName = "ArkOS (R36S / RK3326)"
+    } else {
+        $cfwName = "ArkOS (Slot 2 / TF2 ROMs)"
+    }
 } elseif ($hasMuOSDir) {
     $cfwName = "muOS"
-} elseif ($hasEmusDir) {
-    $cfwName = "TrimUI (CrossMix-OS)"
+} elseif ($hasDataPorts -or $hasTrimuiDir -or $hasEmusDir) {
+    $cfwName = "TrimUI (CrossMix-OS / MinUI)"
+} elseif (Test-Path -LiteralPath (Join-Path $driveRoot "Roms\PORTS")) {
+    $cfwName = "Anbernic Stock OS (H700 / RG35XX)"
 }
 
 # Mismatch-Analyse fuer muOS / PortMaster:
@@ -373,13 +401,19 @@ if ($existingLauncher -and $existingAppDir) {
     $destAppParentDir = [System.IO.Path]::GetDirectoryName($existingAppDir)
     $archType = if ($destLauncherDir.ToLowerInvariant() -eq $destAppParentDir.ToLowerInvariant()) { "Unified Architecture" } else { "Split Architecture" }
     $detectedSystem   = "$cfwName ($archType - Bestehende Installation)"
+} elseif ($hasDataPorts) {
+    # CrossMix-OS / MinUI Split-Architektur (Launcher in Roms\PORTS oder Emus\PORTS, App in Data\ports)
+    $candLauncher = @("Roms\PORTS", "Emus\PORTS", "Data\ports") | ForEach-Object { Join-Path $driveRoot $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $destLauncherDir  = if ($candLauncher) { $candLauncher } else { Join-Path $driveRoot "Roms\PORTS" }
+    $destAppParentDir = Join-Path $driveRoot "Data\ports"
+    $detectedSystem   = "$cfwName (Split: Launcher in $([System.IO.Path]::GetFileName($destLauncherDir)) | App in Data\ports)"
 } elseif ($hasMuOSDir -or $splitModeDetected) {
     # muOS Neuinstallation: Starter in ROMS\ports, App in ports\pr0-retroconsole
     $destLauncherDir  = if ($romsPortsDir) { $romsPortsDir.FullName } else { Join-Path $driveRoot "ROMS\ports" }
     $destAppParentDir = $rootPortsDir
     $detectedSystem   = "muOS (Split: ROMS\ports + ports\)"
 } elseif ($allPortsDirs.Count -eq 1) {
-    # Ein einzelner gefundener Ports-Ordner (Knulli, CrossMix, ArkOS etc.)
+    # Ein einzelner gefundener Ports-Ordner (Knulli, CrossMix, ArkOS, AmberELEC etc.)
     $singlePorts      = $allPortsDirs[0]
     $destLauncherDir  = $singlePorts.FullName
     $destAppParentDir = $singlePorts.FullName

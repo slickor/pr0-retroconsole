@@ -33,16 +33,24 @@ if [ -f "$controlfolder/control.txt" ]; then
   get_controls
 fi
 
-# Robust GAMEDIR resolution (SCRIPTDIR first, then PortMaster, ArkOS, CrossMix)
+# Robust GAMEDIR resolution (SCRIPTDIR first, then PortMaster, ArkOS, CrossMix, MinUI, AmberELEC, ROCKNIX)
 SCRIPTDIR=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
 if [ -d "$SCRIPTDIR/pr0-retroconsole" ]; then
   GAMEDIR="$SCRIPTDIR/pr0-retroconsole"
 elif [ -n "$directory" ] && [ -d "/$directory/ports/pr0-retroconsole" ]; then
   GAMEDIR="/$directory/ports/pr0-retroconsole"
+elif [ -n "$directory" ] && [ -d "/$directory/Data/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/$directory/Data/ports/pr0-retroconsole"
+elif [ -d "/mnt/SDCARD/Data/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/mnt/SDCARD/Data/ports/pr0-retroconsole"
 elif [ -d "/roms2/ports/pr0-retroconsole" ]; then
   GAMEDIR="/roms2/ports/pr0-retroconsole"
 elif [ -d "/roms/ports/pr0-retroconsole" ]; then
   GAMEDIR="/roms/ports/pr0-retroconsole"
+elif [ -d "/storage/roms/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/storage/roms/ports/pr0-retroconsole"
+elif [ -d "/storage/games-external/roms/ports/pr0-retroconsole" ]; then
+  GAMEDIR="/storage/games-external/roms/ports/pr0-retroconsole"
 elif [ -d "/ports/pr0-retroconsole" ]; then
   GAMEDIR="/ports/pr0-retroconsole"
 elif [ -d "/mnt/mmc/ports/pr0-retroconsole" ]; then
@@ -53,6 +61,8 @@ elif [ -d "/userdata/roms/ports/pr0-retroconsole" ]; then
   GAMEDIR="/userdata/roms/ports/pr0-retroconsole"
 elif [ -d "/mnt/SDCARD/Emus/PORTS/pr0-retroconsole" ]; then
   GAMEDIR="/mnt/SDCARD/Emus/PORTS/pr0-retroconsole"
+elif [ -d "/mnt/SDCARD/Roms/PORTS/pr0-retroconsole" ]; then
+  GAMEDIR="/mnt/SDCARD/Roms/PORTS/pr0-retroconsole"
 else
   GAMEDIR="$SCRIPTDIR"
 fi
