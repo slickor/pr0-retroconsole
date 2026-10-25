@@ -34,7 +34,7 @@ flowchart TD
         P2["Phase 2: Postansicht, Video & Auth (v0.3.0 - v0.3.5)<br/>• Hierarchischer Kommentarbaum<br/>• Fullscreen Video mit Audio<br/>• QR-Code Express-Login<br/>• Theming-Engine"]
         P3["Phase 3: UI-Polish & Web-Header (v0.3.6 - v0.3.11)<br/>• Interaktive Header-Navigation<br/>• Caching-Balken & Settings-Scroll<br/>• Schlanke Releases (<800 KB)"]
         P4["Phase 4: Interaktion & Altersgate (v0.3.12 - v0.4.0)<br/>• Altersverifikations-Sync (av-Cookie)<br/>• 10%-Videosprung & Progressbar<br/>• Kommentare bewerten (+/-)<br/>• Antworten & neue Kommentare"]
-        P5["Phase 5: Multi-CFW Hardware-Fixes & Auth-Hints (v0.4.1 - v0.4.6)<br/>• DNS-Resilienz (pr0.app 🔁 pr0gramm.com)<br/>• Knulli Fullscreen-Video (Mali Surface)<br/>• muOS Native Mali GPU (libSDL2 Patcher)<br/>• Präzise Auth-Hinweise für NSFW/NSFL"]
+        P5["Phase 5: Multi-CFW Hardware-Fixes & Auth-Hints (v0.4.1 - v0.4.7)<br/>• DNS-Resilienz (pr0.app 🔁 pr0gramm.com)<br/>• Knulli Fullscreen-Video (Mali Surface)<br/>• muOS Native Mali GPU (libSDL2 Patcher)<br/>• Präzise Auth-Hinweise für NSFW/NSFL<br/>• TrimUI Smart Pro Mapping & Direkter Login"]
         P1 --> P2 --> P3 --> P4 --> P5
     end
 
@@ -104,19 +104,20 @@ flowchart TD
 * [x] **Kommentare verfassen & Antworten:** Direkte Antworten auf Kommentare oder neue Hauptbeiträge verfassen via Bildschirmtastatur oder externer USB-Tastatur.
 * [x] **Optimistisches UI-Feedback:** Sofortige visuelle Aktualisierung der Benis-Punkte im Interface mit asynchroner API-Synchronisation.
 
-### Phase 5: Multi-CFW Kompatibilität & Hardware-Layer (v0.4.1 – v0.4.6)
+### Phase 5: Multi-CFW Kompatibilität & Hardware-Layer (v0.4.1 – v0.4.7)
 * [x] **Multi-Domain Resilienz:** Automatischer DNS- und CDN-Fallback zwischen `pr0gramm.com` und `pr0.app` mit Wiederholungsversuchen.
 * [x] **Knulli Fullscreen-Video-Fix:** Exklusiver Display-Wechsel (`pygame.display.quit()` vor dem Start von mpv und nahtloser Re-Init danach), um Mali EGL Surface Collisions zu verhindern.
 * [x] **muOS Native Mali GPU Support (TrimUI Brick):** Automatischer Patcher (`tools/patch_sdl2.py`), der Pygame vor dem Start an die native System-`libSDL2.so` bindet (`LD_PRELOAD` & `RTLD_GLOBAL`), womit das Problem des `driver=offscreen` der manylinux-Wheels gelöst wurde.
 * [x] **Mali-Framebuffer & 1024×768 Panel-Support:** Direkte native Displayausgabe mit Hardware-Scaling (`pygame.SCALED`) auf 1024×768 und 1280×720 Displays.
 * [x] **Präzise Authentifizierungs-Hinweise für NSFW/NSFL:** Spezifische 403-Erkennung in `Pr0API`, aussagekräftiger Empty-Feed-Screen (*"Anmeldung erforderlich für NSFW/NSFL"*) statt irreführendem *"WLAN prüfen"*, Toasts beim Filterwechsel und direkter Sprung ins Login mit Taste `A`.
+* [x] **TrimUI Smart Pro Controller Mapping & Login-Workflow:** Automatische Erkennung des TrimUI 11-Tasten-Layouts (START=Button 9, SELECT=Button 8), Sofort-Start des QR-Code Express-Logins per Taste `A` auf dem leeren Screen und Schutz gegen Tasten-Durchrutschen.
 
 ---
 
 ## 🚀 Künftige Ziele & Roadmap
 
 ```
-v0.4.6 (Aktuell) ──► v0.5.0 (Interaktion & Suche) ──► v0.6.0 (Media & Audio) ──► v0.7.0 (Offline & Updates) ──► v1.0.0 (Gold Master)
+v0.4.7 (Aktuell) ──► v0.5.0 (Interaktion & Suche) ──► v0.6.0 (Media & Audio) ──► v0.7.0 (Offline & Updates) ──► v1.0.0 (Gold Master)
 ```
 
 ---

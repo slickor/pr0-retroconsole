@@ -78,6 +78,7 @@ class InputManager:
             "timestamp": 0.0,
         }
         self.last_key_events: list[pygame.event.Event] = []
+        self.is_trimui: bool = False
 
         # Detect gptokeyb
         self.is_gptokeyb_active = self._check_gptokeyb()
@@ -136,6 +137,14 @@ class InputManager:
                 )
             except Exception as e:
                 logger.warning("Could not initialize joystick #%d: %s", i, e)
+
+        # Profile detection: TrimUI Smart Pro uses specific raw button indices
+        # (Button 0=B, 1=A, 2=Y, 3=X, 4=L1, 5=R1, 6=L2, 7=R2, 8=SELECT, 9=START, 10=MENU)
+        self.is_trimui = any("trimui" in j.get_name().lower() for j in self.joysticks)
+        if not self.is_trimui and (Path("/usr/trimui").exists() or Path("/mnt/SDCARD/trimui").exists() or Path("/mnt/sdcard/trimui").exists()):
+            self.is_trimui = True
+        if self.is_trimui:
+            logger.info("Controller profile: TrimUI Smart Pro (START=9, SELECT=8, A=1, B=0, X=3, Y=2)")
 
     def refresh_devices(self) -> None:
         """Check for newly connected or disconnected gamepads."""
@@ -248,36 +257,73 @@ class InputManager:
             act = None
             lbl = f"Button {btn}"
 
-            if self.button_layout == "inverted":
-                if btn == BTN_B:  # 1
-                    act, lbl = ACTION_SELECT, "B (Bestätigen)"
-                elif btn == BTN_A:  # 0
-                    act, lbl = ACTION_BACK, "A (Zurück)"
-                elif btn == BTN_Y:  # 3
-                    act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
-                elif btn == BTN_X:  # 2
-                    act, lbl = ACTION_INFO, "X (Info)"
-            else:
-                # Standard
-                if btn == BTN_A:  # 0
-                    act, lbl = ACTION_SELECT, "A (Öffnen / Bestätigen)"
-                elif btn == BTN_B:  # 1
-                    act, lbl = ACTION_BACK, "B (Zurück)"
-                elif btn == BTN_X:  # 2
-                    act, lbl = ACTION_INFO, "X (Info)"
-                elif btn == BTN_Y:  # 3
-                    act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
+            if self.is_trimui:
+                # TrimUI Smart Pro native Linux joystick mapping:
+                # Button 0 = B, 1 = A, 2 = Y, 3 = X
+                # Button 4 = L1, 5 = R1, 6 = L2, 7 = R2
+                # Button 8 = SELECT, 9 = START, 10 = MENU
+                if self.button_layout == "inverted":
+                    if btn == 0:  # Physical B
+                        act, lbl = ACTION_SELECT, "B (Bestätigen)"
+                    elif btn == 1:  # Physical A
+                        act, lbl = ACTION_BACK, "A (Zurück)"
+                    elif btn == 2:  # Physical Y
+                        act, lbl = ACTION_INFO, "Y (Info)"
+                    elif btn == 3:  # Physical X
+                        act, lbl = ACTION_SOLO_FLAG, "X (Solo-Filter)"
+                else:
+                    # Standard Nintendo layout: A (1) = Bestätigen, B (0) = Zurück
+                    if btn == 1:  # Physical A
+                        act, lbl = ACTION_SELECT, "A (Öffnen / Bestätigen)"
+                    elif btn == 0:  # Physical B
+                        act, lbl = ACTION_BACK, "B (Zurück)"
+                    elif btn == 3:  # Physical X
+                        act, lbl = ACTION_INFO, "X (Info)"
+                    elif btn == 2:  # Physical Y
+                        act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
 
-            if btn in (BTN_R1, 5):
-                act, lbl = ACTION_UPVOTE, "R1"
-            elif btn in (BTN_L1, 4):
-                act, lbl = ACTION_DOWNVOTE, "L1"
-            elif btn in (9, 10):
-                act, lbl = ACTION_TOGGLE_MODE, f"L2/R2 (Button {btn})"
-            elif btn == BTN_START:
-                act, lbl = ACTION_SETTINGS, "START"
-            elif btn == BTN_BACK:
-                act, lbl = ACTION_BACK, "SELECT"
+                if btn == 5:
+                    act, lbl = ACTION_UPVOTE, "R1"
+                elif btn == 4:
+                    act, lbl = ACTION_DOWNVOTE, "L1"
+                elif btn in (6, 7):
+                    act, lbl = ACTION_TOGGLE_MODE, f"L2/R2 (Button {btn})"
+                elif btn == 9:
+                    act, lbl = ACTION_SETTINGS, "START"
+                elif btn in (8, 10):
+                    act, lbl = ACTION_BACK, "SELECT/MENU"
+            else:
+                # Standard PC / Xbox / General Gamepad mapping
+                if self.button_layout == "inverted":
+                    if btn == BTN_B:  # 1
+                        act, lbl = ACTION_SELECT, "B (Bestätigen)"
+                    elif btn == BTN_A:  # 0
+                        act, lbl = ACTION_BACK, "A (Zurück)"
+                    elif btn == BTN_Y:  # 3
+                        act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
+                    elif btn == BTN_X:  # 2
+                        act, lbl = ACTION_INFO, "X (Info)"
+                else:
+                    # Standard
+                    if btn == BTN_A:  # 0
+                        act, lbl = ACTION_SELECT, "A (Öffnen / Bestätigen)"
+                    elif btn == BTN_B:  # 1
+                        act, lbl = ACTION_BACK, "B (Zurück)"
+                    elif btn == BTN_X:  # 2
+                        act, lbl = ACTION_INFO, "X (Info)"
+                    elif btn == BTN_Y:  # 3
+                        act, lbl = ACTION_SOLO_FLAG, "Y (Solo-Filter)"
+
+                if btn in (BTN_R1, 5):
+                    act, lbl = ACTION_UPVOTE, "R1"
+                elif btn in (BTN_L1, 4):
+                    act, lbl = ACTION_DOWNVOTE, "L1"
+                elif btn in (9, 10):
+                    act, lbl = ACTION_TOGGLE_MODE, f"L2/R2 (Button {btn})"
+                elif btn in (BTN_START, 7, 11):
+                    act, lbl = ACTION_SETTINGS, "START"
+                elif btn in (BTN_BACK, 6):
+                    act, lbl = ACTION_BACK, "SELECT"
 
             # When gptokeyb is active, face buttons/d-pad/start/back are handled by gptokeyb key strokes.
             # Only shoulder buttons (L1/R1, L2/R2) and START are allowed as fallback here in case gptokeyb dropped them.

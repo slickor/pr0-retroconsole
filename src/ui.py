@@ -695,7 +695,7 @@ class UIRenderer:
             elif requires_login:
                 msg = "Anmeldung erforderlich für NSFW/NSFL"
                 detail_msg = "pr0gramm blendet 18+ Inhalte nur für angemeldete Accounts ein."
-                sub_msg = "[START] Drücken für Setup & QR-Code Express-Login"
+                sub_msg = "[A] QR-Code Express-Login   •   [START / X] Setup"
                 msg_color = self.color_accent
             else:
                 msg = "Keine Beiträge geladen (WLAN prüfen)"

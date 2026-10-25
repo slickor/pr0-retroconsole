@@ -238,6 +238,7 @@ class Pr0App:
         self.scroll_speed: str = str(self.config.get("scroll_speed", "normal"))
         self.scroll_step: int = 45 if self.scroll_speed == "normal" else (85 if self.scroll_speed == "schnell" else 150)
         self.settings_idx: int = 0
+        self._settings_entered_time: float = 0.0
         self.last_api_item_id: int | None = None
 
         # Feedback & Toast
@@ -707,6 +708,8 @@ class Pr0App:
         self.keyboard_target_field = None
         self.direct_sel_idx = 0
         self.direct_captcha_code = ""
+        self.input_mgr.clear_events()
+        self.input_freeze_until = time.time() + 0.35
 
         # Callback from companion web server
         def on_success(name: str, cookie: str) -> None:
@@ -816,6 +819,9 @@ class Pr0App:
         if action == ACTION_BACK:
             self._stop_login_flow()
             self.state = STATE_SETTINGS
+            self._settings_entered_time = time.time()
+            self.input_mgr.clear_events()
+            self.input_freeze_until = time.time() + 0.35
             return
 
         # Switch between QR / Direct mode (X Button / ACTION_INFO)
@@ -981,9 +987,12 @@ class Pr0App:
                     self.grid_scroll_row = 0
                     self.fetch_feed(append=False)
                 return
-            elif action == ACTION_SETTINGS:
+            elif action in (ACTION_SETTINGS, ACTION_INFO):
                 self.state = STATE_SETTINGS
                 self.settings_idx = 0
+                self._settings_entered_time = time.time()
+                self.input_mgr.clear_events()
+                self.input_freeze_until = time.time() + 0.35
                 return
             return
 
@@ -1025,14 +1034,12 @@ class Pr0App:
                 self._update_inline_video()
                 return
             else:
-                # Feed is empty: if login is required for current filter, open Settings/Login directly
+                # Feed is empty: if login is required for current filter, directly start QR-Code Express Login!
                 if (not self.api.is_authenticated) and (
                     self.feed_error == "auth_required"
                     or bool(self.flags & (FLAG_NSFW | FLAG_NSFL | FLAG_NSFP) and not (self.flags & FLAG_SFW))
                 ):
-                    self.state = STATE_SETTINGS
-                    self.settings_idx = 0
-                    self.set_toast("Bitte zuerst anmelden für NSFW/NSFL!", COLOR_ORANGE, duration=2.5)
+                    self._start_login_flow()
                     return
 
                 # Otherwise manual reload
@@ -1041,10 +1048,13 @@ class Pr0App:
                 self._feed_retry_count = 0
                 self.fetch_feed(append=False)
                 return
-        elif action == ACTION_SETTINGS:
-            # Open Settings with START
+        elif action in (ACTION_SETTINGS, ACTION_INFO):
+            # Open Settings with START or X
             self.state = STATE_SETTINGS
             self.settings_idx = 0
+            self._settings_entered_time = time.time()
+            self.input_mgr.clear_events()
+            self.input_freeze_until = time.time() + 0.35
             return
         elif action == ACTION_TOGGLE_MODE:
             # Switch between Beliebt and Neu (via L2 / R2)
@@ -1101,8 +1111,8 @@ class Pr0App:
         elif curr_row >= self.grid_scroll_row + visible_rows:
             self.grid_scroll_row = curr_row - visible_rows + 1
 
-        # Fluid Auto-Paging: Load older items when reaching near bottom
-        if not self.at_end and not self.is_fetching_feed and (total - self.selected_idx) < (cols * 2):
+        # Fluid Auto-Paging: Load older items when reaching near bottom (only if feed is not empty)
+        if total > 0 and not self.at_end and not self.is_fetching_feed and (total - self.selected_idx) < (cols * 2):
             self.fetch_feed(append=True)
 
     def _handle_post_action(self, action: str) -> None:
@@ -1458,6 +1468,8 @@ class Pr0App:
         save_config(self.config, self.config_path)
         self.set_toast("Einstellungen gespeichert!", COLOR_GREEN, duration=2.0)
         self.state = STATE_GRID
+        self.input_mgr.clear_events()
+        self.input_freeze_until = time.time() + 0.35
 
         # Reload feed if flags, promoted or images_only changed in settings
         if old_flags != self.flags or old_promoted != self.promoted or old_images_only != self.images_only:
@@ -1617,8 +1629,10 @@ class Pr0App:
                     self.set_toast(f"Knöpfe: {disp}", COLOR_ORANGE, duration=1.5)
                 return
 
-        # Back (B) or START to save & close
+        # Back (B) or START to save & close (protected against immediate bounce-back)
         if action in (ACTION_BACK, ACTION_SETTINGS):
+            if action == ACTION_SETTINGS and (time.time() - self._settings_entered_time < 0.45):
+                return
             self._save_settings_and_return()
             return
 
@@ -1758,8 +1772,8 @@ class Pr0App:
                 )
                 if requires_login:
                     footer_hints = [
-                        ("START", "Setup / Login"),
-                        ("A", "Anmelden"),
+                        ("A", "QR-Code Login"),
+                        ("START/X", "Setup"),
                         ("B", "Beenden"),
                     ]
                 else:
@@ -1938,6 +1952,10 @@ class Pr0App:
                 self._stop_login_flow()
                 self.set_toast(f"Eingeloggt als {uname}!", COLOR_GREEN, duration=3.0)
                 self.state = STATE_GRID
+                self.items = []
+                self.selected_idx = 0
+                self.grid_scroll_row = 0
+                self.fetch_feed(append=False)
 
             self._process_background_tasks()
 

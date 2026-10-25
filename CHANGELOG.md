@@ -7,6 +7,32 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.7] - 2026-10-25
+
+### Behoben
+- **TrimUI Smart Pro Controller Mapping & Login-Workflow Fix:**
+  - **TrimUI Smart Pro Tasten-Layout behoben:**
+    - Auf dem TrimUI Smart Pro Controller (ohne gptokeyb, z. B. unter muOS) sendet die physische **START-Taste** im Linux-Treiber `Button 9`. Unser bisheriges Mapping fing Button 9 für L2/R2 (`ACTION_TOGGLE_MODE`) ab, wodurch beim Druck auf START der Modus (Neu/Beliebt) umgeschaltet und der Feed neu geladen wurde, statt die Einstellungen zu öffnen.
+    - Nun erkennt `InputManager` Controller mit dem Namen "TRIMUI" automatisch und mappt die Tasten präzise:
+      - Button 9 $\rightarrow$ `START` (`ACTION_SETTINGS`)
+      - Button 8 $\rightarrow$ `SELECT` (`ACTION_BACK`)
+      - Button 6 & 7 $\rightarrow$ `L2` & `R2` (`ACTION_TOGGLE_MODE`)
+      - Button 4 & 5 $\rightarrow$ `L1` & `R1` (`ACTION_DOWNVOTE` & `ACTION_UPVOTE`)
+      - Button 1 $\rightarrow$ physisches `A` (Bestätigen / Öffnen)
+      - Button 0 $\rightarrow$ physisches `B` (Zurück)
+      - Button 3 $\rightarrow$ physisches `X` (Info / Setup)
+      - Button 2 $\rightarrow$ physisches `Y` (Solo-Filter)
+  - **Direkter Express-Login per Taste A auf dem Empty-Screen:**
+    - Erscheint die Meldung *"Anmeldung erforderlich für NSFW/NSFL"*, startet ein Druck auf die **A-Taste** sofort direkt den QR-Code Express-Login (`_start_login_flow()`), ohne Umweg über Menüs.
+    - Druck auf **START** oder **X** öffnet zuverlässig die Einstellungen.
+  - **Kein endloser Reload-Loop / Durchrutschen von Tasten:**
+    - Behoben: Auf leeren Feeds löste jede ungemappte Taste (wie `X`) versehentlich das automatische Feed-Paging aus, da `total == 0 < cols * 2` fälschlicherweise `fetch_feed(append=True)` feuerte.
+    - Schutz gegen Sofort-Schließen: Wenn die Einstellungen über START betreten werden, verhindert ein Cooldown-Fenster (450 ms), dass ein langes Halten der START-Taste die Einstellungen sofort wieder schließt und speichert.
+  - **Automatisches Feed-Neuladen nach erfolgreichem Login:**
+    - Sobald der Login über den Smartphone-Begleiter abgeschlossen ist, wird der zuvor leere Feed sofort automatisch geladen und befüllt.
+
+---
+
 ## [0.4.6] - 2026-10-25
 
 ### Behoben
