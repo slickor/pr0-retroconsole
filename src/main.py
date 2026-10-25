@@ -81,6 +81,7 @@ STATE_POST = "post"
 STATE_SETTINGS = "settings"
 STATE_BUTTON_TEST = "button_test"
 STATE_LOGIN = "login"
+STATE_IMAGE_FULLSCREEN = "image_fullscreen"
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -289,6 +290,10 @@ class Pr0App:
         self.feed_error: str | None = None
         self._last_feed_retry: float = time.time()
         self._feed_retry_count: int = 0
+
+        # Fullscreen Image Viewer State
+        self.fullscreen_image_scroll_y: int = 0
+        self.max_fullscreen_image_scroll: int = 0
 
         # Pygame & Display Setup
         pygame.init()
@@ -656,6 +661,15 @@ class Pr0App:
                 if scroll_delta != 0:
                     self.post_scroll_y = max(0, min(self.max_post_scroll, self.post_scroll_y + scroll_delta))
 
+        # Smooth continuous scrolling in fullscreen image viewer when holding analog stick
+        elif self.state == STATE_IMAGE_FULLSCREEN:
+            if abs(self.input_mgr.stick_ry) > self.input_mgr.axis_threshold or abs(self.input_mgr.stick_ly) > self.input_mgr.axis_threshold:
+                cont_y = self.input_mgr.stick_ry if abs(self.input_mgr.stick_ry) > self.input_mgr.axis_threshold else self.input_mgr.stick_ly
+                speed_factor = 0.35 if self.scroll_speed == "normal" else (0.55 if self.scroll_speed == "schnell" else 0.85)
+                scroll_delta = int(cont_y * self.scroll_step * speed_factor)
+                if scroll_delta != 0:
+                    self.fullscreen_image_scroll_y = max(0, min(self.max_fullscreen_image_scroll, self.fullscreen_image_scroll_y + scroll_delta))
+
         # Handle physical keyboard typing when virtual keyboard is active
         if self.virtual_keyboard:
             for k_ev in self.input_mgr.last_key_events:
@@ -692,6 +706,8 @@ class Pr0App:
                 self._handle_button_test_action(action)
             elif self.state == STATE_LOGIN:
                 self._handle_login_action(action)
+            elif self.state == STATE_IMAGE_FULLSCREEN:
+                self._handle_fullscreen_image_action(action)
 
             # Prevent action bleeding across state transitions
             if self.state != old_state:
@@ -1242,6 +1258,12 @@ class Pr0App:
                         if not played:
                             self.set_toast("mpv/ffplay nicht installiert!", COLOR_RED, duration=2.0)
                         self._update_inline_video()
+                else:
+                    # Switch to Fullscreen Image Viewer
+                    self.fullscreen_image_scroll_y = 0
+                    self.state = STATE_IMAGE_FULLSCREEN
+                    media_url = Pr0API.get_media_url(item)
+                    self.cache.request_download(media_url, priority=0)
 
             elif self.post_focus_idx == 1:
                 if not self.api.is_authenticated:
@@ -1292,6 +1314,81 @@ class Pr0App:
             self.virtual_keyboard = None
             self.post_focus_idx = 0
             self.state = STATE_GRID
+
+    def _handle_fullscreen_image_action(self, action: str) -> None:
+        """Handle user inputs in fullscreen image viewer."""
+        if not self.items:
+            self.state = STATE_GRID
+            return
+
+        item = self.items[self.selected_idx]
+
+        # 1. Exit fullscreen back to post view: B, A, START, or Back
+        if action in (ACTION_BACK, ACTION_SELECT, ACTION_SETTINGS, ACTION_INFO):
+            self.state = STATE_POST
+            self.input_mgr.clear_events()
+            self.input_freeze_until = time.time() + 0.2
+            return
+
+        # 2. Navigate between posts: Left (previous) / Right (next)
+        if action == ACTION_LEFT:
+            if self.selected_idx > 0:
+                self.selected_idx -= 1
+                self.fullscreen_image_scroll_y = 0
+                prev_item = self.items[self.selected_idx]
+                if not Pr0API.is_video(prev_item):
+                    self.cache.request_download(Pr0API.get_media_url(prev_item), priority=0)
+                else:
+                    # Previous item is video -> transition back to post view
+                    self.state = STATE_POST
+                    self._update_inline_video()
+                self.fetch_post_info(prev_item["id"])
+            return
+
+        elif action == ACTION_RIGHT:
+            if self.selected_idx < len(self.items) - 1:
+                self.selected_idx += 1
+                self.fullscreen_image_scroll_y = 0
+                next_item = self.items[self.selected_idx]
+                if not Pr0API.is_video(next_item):
+                    self.cache.request_download(Pr0API.get_media_url(next_item), priority=0)
+                else:
+                    # Next item is video -> transition back to post view
+                    self.state = STATE_POST
+                    self._update_inline_video()
+                self.fetch_post_info(next_item["id"])
+                if not self.at_end and (len(self.items) - self.selected_idx) < 4:
+                    self.fetch_feed(append=True)
+            return
+
+        # 3. D-Pad & Shoulder Scroll in tall images ("Tapeten")
+        step = int(self.scroll_step * 1.5)
+        if action == ACTION_DOWN:
+            self.fullscreen_image_scroll_y = min(
+                self.max_fullscreen_image_scroll,
+                self.fullscreen_image_scroll_y + step,
+            )
+        elif action == ACTION_UP:
+            self.fullscreen_image_scroll_y = max(
+                0,
+                self.fullscreen_image_scroll_y - step,
+            )
+        elif action == ACTION_SCROLL_DOWN:  # R1 / R2
+            self.fullscreen_image_scroll_y = min(
+                self.max_fullscreen_image_scroll,
+                self.fullscreen_image_scroll_y + int(self.height * 0.75),
+            )
+        elif action == ACTION_SCROLL_UP:    # L1 / L2
+            self.fullscreen_image_scroll_y = max(
+                0,
+                self.fullscreen_image_scroll_y - int(self.height * 0.75),
+            )
+
+        # 4. Voting in Fullscreen mode (Y / R1 = Upvote, X / L1 = Downvote)
+        elif action in (ACTION_UPVOTE, ACTION_SOLO_FLAG):
+            self.cast_vote(item["id"], 1)
+        elif action in (ACTION_DOWNVOTE, ACTION_INFO):
+            self.cast_vote(item["id"], -1)
 
     # -------------------------------------------------------------------------
     # Settings Menu & Configuration Logic
@@ -1883,8 +1980,7 @@ class Pr0App:
                     ("▲/▼", "Fokus"),
                 ]
                 if self.post_focus_idx == 0:
-                    if is_vid:
-                        hints.append(("A", "Vollbild"))
+                    hints.append(("A", "Vollbild"))
                     hints.extend([
                         ("Y/R1", "+1"),
                         ("X/L1", "-1"),
@@ -1925,6 +2021,16 @@ class Pr0App:
                 active_keyboard=self.virtual_keyboard,
                 status_message=self.login_status_msg,
                 status_color=self.login_status_color,
+                toast_message=toast_active,
+                toast_color=self.toast_color,
+            )
+
+        elif self.state == STATE_IMAGE_FULLSCREEN and self.items:
+            item = self.items[self.selected_idx]
+            self.max_fullscreen_image_scroll = self.ui.render_fullscreen_image(
+                item=item,
+                cache_manager=self.cache,
+                scroll_y=self.fullscreen_image_scroll_y,
                 toast_message=toast_active,
                 toast_color=self.toast_color,
             )

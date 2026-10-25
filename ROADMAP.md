@@ -108,7 +108,7 @@ flowchart TD
 * [x] **Kommentare verfassen & Antworten:** Direkte Antworten auf Kommentare oder neue Hauptbeiträge verfassen via Bildschirmtastatur oder externer USB-Tastatur.
 * [x] **Optimistisches UI-Feedback:** Sofortige visuelle Aktualisierung der Benis-Punkte im Interface mit asynchroner API-Synchronisation.
 
-### Phase 5: Multi-CFW Kompatibilität, Installer & Hardware-Layer (v0.4.1 – v0.4.9)
+### Phase 5: Multi-CFW Kompatibilität, Installer & Hardware-Layer (v0.4.1 – v0.4.10)
 * [x] **Multi-Domain Resilienz:** Automatischer DNS- und CDN-Fallback zwischen `pr0gramm.com` und `pr0.app` mit Wiederholungsversuchen.
 * [x] **Knulli Fullscreen-Video-Fix:** Exklusiver Display-Wechsel (`pygame.display.quit()` vor dem Start von mpv und nahtloser Re-Init danach), um Mali EGL Surface Collisions zu verhindern.
 * [x] **muOS Native Mali GPU Support (TrimUI Brick):** Automatischer Patcher (`tools/patch_sdl2.py`), der Pygame vor dem Start an die native System-`libSDL2.so` bindet (`LD_PRELOAD` & `RTLD_GLOBAL`), womit das Problem des `driver=offscreen` der manylinux-Wheels gelöst wurde.
@@ -118,13 +118,15 @@ flowchart TD
 * [x] **Responsive QR-Code Login Skalierung:** Dynamische Card-Breite (1110px auf 720p) und adaptive URL-Box, sodass IP-Adresse und Anleitungen auf Breitbild-Displays (TrimUI Smart Pro) perfekt zentriert und umrahmt dargestellt werden.
 * [x] **Universeller SD-Karten-Installer (`install.ps1`):** Automatische Erkennung und Installation für muOS (Split-Architektur), Knulli/Batocera (Multi-Partition Auto-Select), ArkOS, CrossMix-OS, MinUI und AmberELEC inklusive Login-Schutz (`config.json`) und Unix-LF Konvertierung.
 * [x] **100% Vibecode & Amtssprache:** Durchgängiges Bekenntnis zur pr0-Amtssprache und 100% Vibecode über alle Projekt-Dateien, Einstellungen und Renderings.
+* [x] **Knulli / Batocera mpv DRM/KMS Fix:** Behebung des Video-Standbild-Bugs auf Knulli durch erzwungenen `--vo=gpu-next,gpu --gpu-context=drm`-Modus und `LD_PRELOAD`-Bereinigung.
+* [x] **Vollbildansicht für Bilder ("Tapeten-Modus"):** Vollbildanzeige für Bilder mit A-Taste (`ACTION_SELECT`) und butterweichem vertikalem Scrollen bei langen Bildern per D-Pad, Analogsticks und Schultertasten.
 
 ---
 
 ## 🚀 Künftige Ziele & Roadmap
 
 ```
-v0.4.9 (Aktuell) ──► v0.4.10+ (Stabilität & Tests) ──► v0.5.0 (Interaktion & Suche) ──► v0.6.0 (Media & Audio) ──► v1.0.0 (Gold Master)
+v0.4.10 (Aktuell) ──► v0.4.11+ (Stabilität & Tests) ──► v0.5.0 (Interaktion & Suche) ──► v0.6.0 (Media & Audio) ──► v1.0.0 (Gold Master)
 ```
 
 ---

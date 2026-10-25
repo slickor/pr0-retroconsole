@@ -1,7 +1,7 @@
 # pr0-retroconsole
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-banner.png?v=0.4.9" alt="pr0-retroconsole Banner" width="100%">
+  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-banner.png?v=0.4.10" alt="pr0-retroconsole Banner" width="100%">
 </p>
 
 <p align="center">
@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Amtssprache-Deutsch%20%F0%9F%87%A9%F0%9F%87%AA-ee4d2e?style=for-the-badge" alt="Amtssprache: Deutsch">
   <img src="https://img.shields.io/badge/Code-100%25%20Vibecode%20%E2%9C%A8-f5a623?style=for-the-badge" alt="100% Vibecode">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.4.9-orange?style=for-the-badge" alt="Changelog"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.4.10-orange?style=for-the-badge" alt="Changelog"></a>
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Roadmap-2026-blueviolet?style=for-the-badge" alt="Roadmap"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/slickor/pr0-retroconsole?style=for-the-badge" alt="License"></a>
 </p>
@@ -29,7 +29,7 @@
 <summary>📱 <b>Infografik & Feature-Poster ansehen (Klicken zum Ausklappen)</b></summary>
 <br>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-poster.png?v=0.4.9" alt="pr0-retroconsole Infografik-Poster" width="850">
+  <img src="https://raw.githubusercontent.com/slickor/pr0-retroconsole/refs/heads/main/docs/images/pr0-presentation-poster.png?v=0.4.10" alt="pr0-retroconsole Infografik-Poster" width="850">
 </p>
 </details>
 
@@ -37,9 +37,13 @@
 
 ## Highlights & Features
 
+- **Vollbildansicht für Bilder & "Tapeten-Modus":**
+  - Bilder auf Knopfdruck (`A`) im Vollbild öffnen.
+  - Überhohe Bilder ("Tapeten", Comics, lange Memes) füllen die volle Displaybreite aus und lassen sich butterweich mit D-Pad, Analogstick und Schultertasten durchscrollen.
+  - Direktes Weiterschalten zum nächsten Post (◄/►) und schnelles Bewerten (Y/X) direkt im Vollbild.
 - **Flüssiger Videosound & 60 FPS:**
   - Videos laufen direkt in der Beitragsansicht synchron mit Ton.
-  - Vollbild-Wiedergabe via `mpv` oder `ffplay` auf Knopfdruck (`A`) mit Pause/Weiter und sauberem Beenden (`B`).
+  - Vollbild-Wiedergabe via `mpv` (mit nativem KMS/DRM-Support für Knulli, Batocera, muOS und ArkOS) oder `ffplay` auf Knopfdruck (`A`) mit Pause/Weiter und sauberem Beenden (`B`).
   - Spezieller Software-Decoder-Modus (`--hwdec=no`) behebt den Allwinner-A133 DTS/PTS B-Frame-Ruckel-Bug auf dem TrimUI Smart Pro.
 - **Originalgetreuer pr0.app Look:**
   - Authentischer Web-Header mit Suchleiste, Benis-Punkten, Benutzernamen und korrekten Rang-Farben (*Schwuchtel, Neuschwuchtel, Altschwuchtel, Moderator, Admin*).

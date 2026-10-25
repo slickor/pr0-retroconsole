@@ -141,6 +141,8 @@ def get_video_duration(url: str, cookie_header: str | None = None) -> float:
 def get_handheld_env(binary_path: str | None = None) -> dict[str, str]:
     """Build process environment with LD_LIBRARY_PATH pointing to handheld system/app libraries."""
     env = os.environ.copy()
+    # Remove LD_PRELOAD so external subprocesses (mpv, ffplay) are not forced to link against Pygame's patched SDL2
+    env.pop("LD_PRELOAD", None)
     if platform.system() == "Linux":
         lib_candidates = [
             "/mnt/SDCARD/System/lib",
@@ -669,83 +671,53 @@ class VideoPlayer:
         """Generate mpv input bindings matching active button layout."""
         if self.button_layout == "inverted":
             # Inverted (Xbox style: B=Play/Pause, A=Quit/Back)
-            play_bindings = """
-SPACE cycle pause
-ENTER cycle pause
-b cycle pause
-B cycle pause
-GAMEPAD_ACTION_DOWN cycle pause
-BTN_SOUTH cycle pause
-BTN_A cycle pause
-JOY_BTN0 cycle pause
-JOY_A cycle pause
-"""
-            quit_bindings = """
-esc quit
-ESC quit
-a quit
-A quit
-q quit
-Q quit
-backspace quit
-BACKSPACE quit
-GAMEPAD_ACTION_RIGHT quit
-GAMEPAD_BACK quit
-BTN_EAST quit
-BTN_B quit
-BTN_SELECT quit
-BTN_START cycle pause
-JOY_BTN1 quit
-JOY_B quit
-"""
+            play_action = "GAMEPAD_ACTION_RIGHT"
+            quit_action = "GAMEPAD_ACTION_DOWN"
+            play_btn = "GAMEPAD_B"
+            quit_btn = "GAMEPAD_A"
+            key_play = "b\nB"
+            key_quit = "a\nA"
         else:
             # Standard (Nintendo / TrimUI / Knulli / ArkOS: A=Play/Pause, B=Quit/Back)
-            play_bindings = """
-SPACE cycle pause
-ENTER cycle pause
-a cycle pause
-A cycle pause
-GAMEPAD_ACTION_RIGHT cycle pause
-BTN_EAST cycle pause
-BTN_B cycle pause
-JOY_BTN1 cycle pause
-JOY_B cycle pause
-"""
-            quit_bindings = """
-esc quit
-ESC quit
-b quit
-B quit
-q quit
-Q quit
-backspace quit
-BACKSPACE quit
-GAMEPAD_ACTION_DOWN quit
-GAMEPAD_BACK quit
-BTN_SOUTH quit
-BTN_A quit
-BTN_SELECT quit
-BTN_START cycle pause
-JOY_BTN0 quit
-JOY_A quit
-"""
+            play_action = "GAMEPAD_ACTION_DOWN"
+            quit_action = "GAMEPAD_ACTION_RIGHT"
+            play_btn = "GAMEPAD_A"
+            quit_btn = "GAMEPAD_B"
+            key_play = "a\nA"
+            key_quit = "b\nB"
 
         return f"""# pr0-retroconsole mpv controls ({self.button_layout})
-# Seeking controls (10% jumps with visual OSD progress bar)
+# Seeking controls (10% and 30% jumps with visual OSD progress bar)
 RIGHT osd-msg-bar seek 10 relative-percent
 LEFT osd-msg-bar seek -10 relative-percent
-right osd-msg-bar seek 10 relative-percent
-left osd-msg-bar seek -10 relative-percent
-GAMEPAD_ACTION_RIGHT osd-msg-bar seek 10 relative-percent
-GAMEPAD_ACTION_LEFT osd-msg-bar seek -10 relative-percent
-BTN_DPAD_RIGHT osd-msg-bar seek 10 relative-percent
-BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
+UP osd-msg-bar seek 30 relative-percent
+DOWN osd-msg-bar seek -30 relative-percent
+GAMEPAD_DPAD_RIGHT osd-msg-bar seek 10 relative-percent
+GAMEPAD_DPAD_LEFT osd-msg-bar seek -10 relative-percent
+GAMEPAD_DPAD_UP osd-msg-bar seek 30 relative-percent
+GAMEPAD_DPAD_DOWN osd-msg-bar seek -30 relative-percent
+GAMEPAD_RIGHT_SHOULDER osd-msg-bar seek 10 relative-percent
+GAMEPAD_LEFT_SHOULDER osd-msg-bar seek -10 relative-percent
 
 # Playback controls
-{play_bindings.strip()}
+SPACE cycle pause
+ENTER cycle pause
+{key_play}
+{play_btn} cycle pause
+{play_action} cycle pause
 
 # Quit controls
-{quit_bindings.strip()}
+ESC quit
+esc quit
+q quit
+Q quit
+BS quit
+{key_quit}
+{quit_btn} quit
+{quit_action} quit
+GAMEPAD_BACK quit
+GAMEPAD_MENU quit
+GAMEPAD_START cycle pause
 """
 
     def _ensure_input_conf(self) -> Path:
@@ -796,13 +768,19 @@ BTN_DPAD_LEFT osd-msg-bar seek -10 relative-percent
                 except Exception:
                     pass
 
+                # In Linux console / handhelds without X11 or Wayland, use KMS/DRM gpu-context
+                if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+                    gpu_ctx = "auto"
+                else:
+                    gpu_ctx = "drm"
+
                 # Fullscreen playback for TrimUI Smart Pro, R36S, ArkOS, Knulli, muOS
                 cmd = [
                     self.player_path,
                     "--fs",
                     "--hwdec=no",
-                    "--vo=gpu,drm,sdl",
-                    "--gpu-context=auto",
+                    "--vo=gpu-next,gpu",
+                    f"--gpu-context={gpu_ctx}",
                     "--ao=alsa,oss,sdl",
                     "--volume=100",
                     "--video-sync=audio",

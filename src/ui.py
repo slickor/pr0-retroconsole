@@ -1859,4 +1859,159 @@ class UIRenderer:
                     toast_color=toast_color,
                 )
 
+    def render_fullscreen_image(
+        self,
+        item: dict[str, Any],
+        cache_manager: Any,
+        scroll_y: int,
+        toast_message: str | None = None,
+        toast_color: tuple[int, int, int] | None = None,
+    ) -> int:
+        """Render fullscreen image view with vertical scrolling for tall posts ('Tapeten').
+
+        Returns max_scroll offset in pixels (0 if image fits screen).
+        """
+        # Deep black background for optimal contrast and OLED/IPS display immersion
+        self.screen.fill((10, 10, 10))
+
+        media_url = Pr0API.get_media_url(item)
+        thumb_url = Pr0API.get_thumb_url(item)
+        full_surf = cache_manager.get_surface(media_url, priority=0)
+        thumb_surf = cache_manager.get_surface(thumb_url, priority=0)
+        active_surf = full_surf if full_surf else thumb_surf
+
+        if not active_surf:
+            cache_manager.request_download(media_url, priority=0)
+            msg = "Lade hochauflösendes Bild..."
+            mw = self.font_bold.size(msg)[0]
+            self.draw_text(
+                self.screen,
+                self.font_bold,
+                msg,
+                self.color_accent,
+                ((self.width - mw) // 2, (self.height - self.font_bold.get_height()) // 2),
+            )
+            self._render_fullscreen_image_hud(max_scroll=0, toast_message=toast_message, toast_color=toast_color)
+            return 0
+
+        orig_w = max(1, active_surf.get_width())
+        orig_h = max(1, active_surf.get_height())
+        aspect = orig_h / orig_w
+        screen_aspect = self.height / self.width
+
+        # Image scaling:
+        # If image is taller than screen aspect ratio ('Tapete' / portrait format),
+        # scale width to screen width so that details and text are sharp and fill the display.
+        if aspect > screen_aspect:
+            target_w = self.width
+            target_h = int(orig_h * (self.width / orig_w))
+            target_h = min(16384, max(1, target_h))
+            draw_x = 0
+            max_scroll = max(0, target_h - self.height)
+            clamped_scroll = max(0, min(max_scroll, scroll_y))
+            draw_y = -clamped_scroll
+        else:
+            # Fits completely within display dimensions (landscape / square / 4:3 / 16:9)
+            scale = min(self.width / orig_w, self.height / orig_h)
+            target_w = max(1, int(orig_w * scale))
+            target_h = max(1, int(orig_h * scale))
+            draw_x = (self.width - target_w) // 2
+            draw_y = (self.height - target_h) // 2
+            max_scroll = 0
+            clamped_scroll = 0
+
+        scaled_surf = self._get_scaled_surface(active_surf, target_w, target_h)
+        self.screen.blit(scaled_surf, (draw_x, draw_y))
+
+        # Right-side sleek scroll bar for tall images
+        if max_scroll > 0:
+            bar_w = max(3, int(4 * self.scale))
+            bar_h = self.height
+            bar_x = self.width - bar_w - 2
+            track_surf = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
+            track_surf.fill((0, 0, 0, 120))
+            self.screen.blit(track_surf, (bar_x, 0))
+
+            thumb_h = max(int(24 * self.scale), int(bar_h * (self.height / target_h)))
+            thumb_y = int((bar_h - thumb_h) * (clamped_scroll / max_scroll))
+            thumb_surf = pygame.Surface((bar_w, thumb_h), pygame.SRCALPHA)
+            thumb_surf.fill((*self.color_accent, 220))
+            self.screen.blit(thumb_surf, (bar_x, thumb_y))
+
+        self._render_fullscreen_image_hud(
+            max_scroll=max_scroll,
+            toast_message=toast_message,
+            toast_color=toast_color,
+        )
+        return max_scroll
+
+    def _render_fullscreen_image_hud(
+        self,
+        max_scroll: int,
+        toast_message: str | None = None,
+        toast_color: tuple[int, int, int] | None = None,
+    ) -> None:
+        """Render subtle translucent control pill and toast overlay in fullscreen image mode."""
+        if toast_message:
+            tw, th = self.font_bold.size(toast_message)
+            pad_x = int(14 * self.scale)
+            pad_y = int(8 * self.scale)
+            t_box_w = tw + pad_x * 2
+            t_box_h = th + pad_y * 2
+            t_x = (self.width - t_box_w) // 2
+            t_y = self.height - t_box_h - int(12 * self.scale)
+
+            t_surf = pygame.Surface((t_box_w, t_box_h), pygame.SRCALPHA)
+            t_surf.fill((16, 16, 16, 225))
+            self.screen.blit(t_surf, (t_x, t_y))
+            pygame.draw.rect(self.screen, toast_color or self.color_accent, (t_x, t_y, t_box_w, t_box_h), width=1, border_radius=4)
+            self.draw_text(self.screen, self.font_bold, toast_message, toast_color or self.color_accent, (t_x + pad_x, t_y + pad_y))
+            return
+
+        # Semi-transparent bottom navigation pill
+        hints: list[tuple[str, str]] = [("◄/►", "Post")]
+        if max_scroll > 0:
+            hints.append(("▲/▼", "Scrollen"))
+        hints.extend([("Y", "+1"), ("X", "-1"), ("B", "Zurück")])
+
+        # Precalculate pill width
+        pill_elements: list[tuple[str, str, int, int]] = []
+        total_w = 0
+        gap = int(10 * self.scale)
+        key_pad = int(4 * self.scale)
+
+        for key, label in hints:
+            kw = self.font_small.size(key)[0] + key_pad * 2
+            lw = self.font_small.size(label)[0]
+            elem_w = kw + int(3 * self.scale) + lw
+            total_w += elem_w + gap
+            pill_elements.append((key, label, kw, lw))
+
+        total_w = max(0, total_w - gap)
+        pill_h = int(22 * self.scale)
+        pill_pad_x = int(12 * self.scale)
+        box_w = total_w + pill_pad_x * 2
+        box_h = pill_h + int(6 * self.scale)
+        box_x = (self.width - box_w) // 2
+        box_y = self.height - box_h - int(8 * self.scale)
+
+        # Translucent pill background
+        pill_surf = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+        pill_surf.fill((0, 0, 0, 160))
+        self.screen.blit(pill_surf, (box_x, box_y))
+        pygame.draw.rect(self.screen, (60, 60, 60, 180), (box_x, box_y, box_w, box_h), width=1, border_radius=int(box_h // 2))
+
+        # Render hint tokens
+        curr_x = box_x + pill_pad_x
+        text_y = box_y + (box_h - self.font_small.get_height()) // 2
+        for key, label, kw, lw in pill_elements:
+            k_rect = pygame.Rect(curr_x, text_y - 1, kw, self.font_small.get_height() + 2)
+            pygame.draw.rect(self.screen, (40, 40, 40), k_rect, border_radius=3)
+            self.draw_text(self.screen, self.font_small, key, (255, 255, 255), (curr_x + key_pad, text_y))
+            curr_x += kw + int(3 * self.scale)
+
+            self.draw_text(self.screen, self.font_small, label, self.color_text_dim, (curr_x, text_y))
+            curr_x += lw + gap
+
+
 

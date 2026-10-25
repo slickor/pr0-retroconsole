@@ -11,6 +11,30 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ---
 
+## [0.4.10] - 2026-10-25
+
+### Hinzugefügt
+- **Vollbildansicht für Bilder inklusive vertikalem Scrollen ("Tapeten-Modus"):**
+  - **A-Taste öffnet Bild im Vollbild:** In der Einzelpostansicht (`STATE_POST`) schaltet das Drücken der A-Taste (`ACTION_SELECT`) bei Bildern direkt in die Vollbildansicht (`STATE_IMAGE_FULLSCREEN`).
+  - **Responsive Skalierung & Vertikales Scrollen ("Tapeten"):**
+    - Überhohe Bilder (Webcomics, Infografiken, Memes mit Hochkant-Format) füllen automatisch die volle Bildschirmbreite aus, sodass Texte und Details groß und gestochen scharf lesbar sind.
+    - Fließendes vertikales Scrollen über die gesamte Bildlänge mit Steuerkreuz (D-Pad ▲/▼), Analogsticks (stufenloses Halten) und Schultertasten (L1/R1 für schnelle Seitensprünge).
+    - Dezente, elegante Scrollbar am rechten Bildschirmrand zeigt aktuelle Position und relative Bildhöhe an.
+    - Normale Querformat- und quadratische Bilder werden formatfüllend zentriert dargestellt.
+  - **Direkte Post-Navigation & Voting im Vollbild:**
+    - Mit ◄ / ► kann direkt im Vollbild zum nächsten oder vorherigen Post gewechselt werden (bei Video-Posts erfolgt ein nahtloser Wechsel in die Postansicht).
+    - Schnelles Bewerten mit Y/R1 (+1) und X/L1 (-1) direkt im Vollbildmodus.
+    - Zurück zur Postansicht mit B, A, START oder Esc.
+
+### Behoben
+- **Knulli / Batocera Vollbild-Video Freeze auf TrimUI Smart Pro behoben:**
+  - **DRM/KMS Video-Output repariert:** In Linux-Handheld-Umgebungen ohne X11/Wayland-Server schlug mpv mit `--vo=gpu,drm,sdl --gpu-context=auto` fehl (`[vo] Video output drm not found!`, `[vo/sdl] Another component is using SDL already.`), wodurch mpv stumm in den Audio-Only-Modus wechselte und der Bildschirm auf dem letzten Frame einfror.
+  - **Exklusiver DRM-Kontext:** mpv wird in TTY-/Handheld-Konsolenumgebungen nun gezielt mit `--vo=gpu-next,gpu --gpu-context=drm` gestartet.
+  - **LD_PRELOAD-Isolation:** `LD_PRELOAD` wird beim Starten externer Media-Player aus dem Subprozess-Environment entfernt, wodurch Konflikte zwischen Pygames gepatchter SDL2 und systemeigenen Bibliotheken verhindert werden.
+  - **Säuberung der mpv-Steuerung (`pr0_mpv_input.conf`):** Entfernung ungültiger Linux-Evdev-Schlüssel; Einbindung nativer mpv-Tasten (`GAMEPAD_MENU`, `GAMEPAD_DPAD_*`, `GAMEPAD_A`, `GAMEPAD_B`, `BS`). Die Taste MENU beendet die Wiedergabe zuverlässig.
+
+---
+
 ## [0.4.9] - 2026-10-25
 
 ### Hinzugefügt

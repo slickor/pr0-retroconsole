@@ -7,4 +7,4 @@ Versioning rule: Increment patch versions consecutively (e.g. 0.4.9 -> 0.4.10 ->
 unless major (x.) or minor (y.) increment (e.g. 0.5.0) is explicitly requested by the user.
 """
 
-VERSION = "0.4.9"
+VERSION = "0.4.10"
