@@ -32,3 +32,8 @@ release/
 *.zip
 /pr0-presentation-*.png
 
+# Local Developer & Helper Scripts
+dev/
+export_sd_ports_check.ps1
+ports_analyse_*.txt
+
