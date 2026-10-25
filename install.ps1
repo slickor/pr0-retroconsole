@@ -1,6 +1,7 @@
 # ==============================================================================
 # install.ps1 - Automatischer SD-Karten Installer fuer pr0-retroconsole
 # ==============================================================================
+# Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode
 # Installiert oder aktualisiert pr0-retroconsole auf jeder eingesteckten SD-Karte
 # (TrimUI Smart Pro, R36S, Anbernic, muOS, Knulli, ArkOS, CrossMix-OS, Batocera, etc.).
 # ==============================================================================
@@ -28,6 +29,7 @@ $global:IgnoredAppNames = @(
 function Write-Pr0Header {
     Write-Host "`n============================================================" -ForegroundColor Cyan
     Write-Host "   pr0-retroconsole - Automatischer SD-Karten Installer    " -ForegroundColor Yellow
+    Write-Host "       [ 100% Vibecode  •  Amtssprache: Deutsch ]          " -ForegroundColor Gray
     Write-Host "============================================================" -ForegroundColor Cyan
 }
 

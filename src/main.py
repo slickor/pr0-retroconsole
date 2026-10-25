@@ -1,5 +1,6 @@
 """Entry Point and Main Loop for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Implements the application state-machine between Grid-View, Single-Post-View,
 and Comment-Tree Overlay with asynchronous API calls, caching, and SDL2 gamepad controls.
 """
@@ -1432,9 +1433,9 @@ class Pr0App:
             },
             {
                 "id": "version_info",
-                "label": "Version",
+                "label": "Version & Vibe",
                 "type": "info",
-                "display_value": f"v{VERSION}",
+                "display_value": f"v{VERSION} (100% Vibecode • Amtssprache)",
             },
             {
                 "id": "save_exit",

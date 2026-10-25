@@ -7,6 +7,8 @@
 <p align="center">
   <a href="https://github.com/slickor/pr0-retroconsole/releases"><img src="https://img.shields.io/github/v/release/slickor/pr0-retroconsole?color=ee4d2e&style=for-the-badge" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/Platform-ArkOS%20%7C%20CrossMix%20%7C%20muOS%20%7C%20Knulli%20%7C%20PortMaster-1b79c3?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Amtssprache-Deutsch%20%F0%9F%87%A9%F0%9F%87%AA-ee4d2e?style=for-the-badge" alt="Amtssprache: Deutsch">
+  <img src="https://img.shields.io/badge/Code-100%25%20Vibecode%20%E2%9C%A8-f5a623?style=for-the-badge" alt="100% Vibecode">
   <img src="https://img.shields.io/badge/Python-3.8%2B%20%7C%20SDL2-5cb85c?style=for-the-badge" alt="Python Version">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Changelog-v0.4.8-orange?style=for-the-badge" alt="Changelog"></a>
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Roadmap-2026-blueviolet?style=for-the-badge" alt="Roadmap"></a>
@@ -14,6 +16,12 @@
 </p>
 
 > **pr0-retroconsole** ist ein nativer, leichtgewichtiger Client für das Imageboard [pr0gramm](https://pr0gramm.com), maßgeschneidert für Linux-basierte Retro-Handheld-Konsolen wie den **R36S** (640x480, ArkOS), den **TrimUI Smart Pro** (1280x720, CrossMix-OS), Anbernic-, Powkiddy-, Knulli- und PortMaster-Systeme.
+
+> [!IMPORTANT]
+> ### 🇩🇪 Amtssprache & 100% Vibecode-Garantie
+> Dieses Projekt wird mit voller Absicht, Hingabe und ohne faule Kompromisse auf **Deutsch** (auf dem pr0 bekanntlich die einzig wahre *„Amtssprache“*) dokumentiert, kommentiert, bedient und ausgeführt. Wer hier angelsächsischen Firlefanz sucht, darf ihn behalten.
+>
+> Zudem ist diese Software zu **100% zertifizierter Vibecode**: Keine endlosen Scrum-Zeremonien, keine Enterprise-Jira-Tickets, keine überkandidelten Architektur-Ausschüsse – sondern pure Vibes, KI-Pair-Programming, handverlesene Pygame- und SDL2-Hacks und ein Traum von pr0gramm auf dem Fliesentisch-Handheld. Es läuft einfach!
 
 ---
 
@@ -52,6 +60,9 @@
   - Asynchroner Mehrthread-Downloader nach `/tmp/pr0cache` (tmpfs) schont den Flash-Speicher der SD-Karte und sorgt für verzögerungsfreies Scrollen.
 - **Kompaktes Release-Paket:**
   - Nur **~0,77 MB** klein (Pure-Python-Abhängigkeiten `requests` an Bord, keine unnötigen Bloatware-Assets).
+- **100% Vibecode in Amtssprache:**
+  - Konsequent auf Deutsch (pr0-Amtssprache) gehalten: von der Menüführung über Toast-Meldungen bis hin zu den Quellcode-Kommentaren.
+  - Mit maximalem Vibe und purer Leidenschaft entwickelt – pragmatisch, schnell und frei von Enterprise-Bürokratie.
 
 ---
 

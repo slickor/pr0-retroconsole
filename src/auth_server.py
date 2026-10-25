@@ -1,5 +1,6 @@
 """Local Companion Web Server for Smartphone-assisted login on handhelds.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Runs a lightweight HTTP server on the local LAN. Allows users to open a
 mobile-optimized web page on their smartphone or PC in the same Wi-Fi,
 enter their pr0gramm credentials and solve the captcha on a touch screen.

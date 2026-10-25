@@ -1,5 +1,6 @@
 """Cross-platform Release Packaging Script for pr0-retroconsole.
 Works identically on Windows, Linux, and GitHub Actions CI.
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 
 Produces PortMaster-compliant release ZIPs:
   - pr0-retroconsole-v{VERSION}.zip

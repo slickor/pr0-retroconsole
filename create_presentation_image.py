@@ -138,12 +138,13 @@ def create_poster():
     # -------------------------------------------------------------
     curr_y = 50
 
-    # Badges (ArkOS, CrossMix-OS, muOS, Knulli, Release, Open Source)
+    # Badges (ArkOS, CrossMix-OS, muOS, Knulli, Vibecode, Amtssprache, Release)
     p1_w, p1_h = draw_pill(draw, 70, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
     p2_w, p2_h = draw_pill(draw, 70 + p1_w + 12, curr_y, "CROSSMIX & MUOS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
     p3_w, p3_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12, curr_y, "KNULLI", font_badge, (38, 22, 52, 255), (200, 145, 255, 255), (95, 45, 135, 255))
-    p4_w, p4_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12 + p3_w + 12, curr_y, f"RELEASE v{VERSION}", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
-    draw_pill(draw, None, curr_y, "100% OPEN SOURCE", font_badge, (30, 30, 35, 255), COLOR_TEXT_GRAY, (60, 60, 70, 255), right_x=W - 70)
+    p4_w, p4_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12 + p3_w + 12, curr_y, "100% VIBECODE", font_badge, (45, 30, 15, 255), (245, 166, 35, 255), (130, 85, 20, 255))
+    p5_w, p5_h = draw_pill(draw, 70 + p1_w + 12 + p2_w + 12 + p3_w + 12 + p4_w + 12, curr_y, f"RELEASE v{VERSION}", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
+    draw_pill(draw, None, curr_y, "AMTSSPRACHE: DEUTSCH", font_badge, (40, 20, 20, 255), (255, 130, 130, 255), (130, 40, 40, 255), right_x=W - 70)
 
     curr_y += 55
 
@@ -171,7 +172,7 @@ def create_poster():
 
     # Subtitle
     curr_y += box_h + 16
-    sub_text = "Die native pr0gramm-App für Handheld-Konsolen • R36S, TrimUI Smart Pro & Brick, ArkOS, muOS, CrossMix & Co."
+    sub_text = "Die native pr0gramm-App für Handheld-Konsolen • 100% Vibecode in Amtssprache • R36S, TrimUI, muOS, ArkOS & Co."
     draw.text((70, curr_y), sub_text, font=font_subtitle, fill=COLOR_TEXT_GRAY)
 
     curr_y += 48
@@ -339,8 +340,8 @@ def create_poster():
     # Orange highlight indicator on left
     draw.rounded_rectangle((70, footer_y, 76, footer_y + footer_h), radius=3, fill=COLOR_ORANGE)
 
-    draw.text((100, footer_y + 22), f"Open Source auf GitHub • PortMaster Release v{VERSION}", font=font_card_title, fill=COLOR_TEXT_WHITE)
-    draw.text((100, footer_y + 58), "Entwickelt für die Fliesentisch-Elite • Benis, Feedback & Pull Requests willkommen!", font=font_footer, fill=COLOR_TEXT_GRAY)
+    draw.text((100, footer_y + 22), f"Open Source auf GitHub • 100% Vibecode • PortMaster Release v{VERSION}", font=font_card_title, fill=COLOR_TEXT_WHITE)
+    draw.text((100, footer_y + 58), "Entwickelt für die Fliesentisch-Elite • Amtssprache Deutsch • Benis, Feedback & Pull Requests willkommen!", font=font_footer, fill=COLOR_TEXT_GRAY)
 
     draw_pill(draw, None, footer_y + 30, "JETZT TESTEN >>", font_badge, COLOR_ORANGE, (255, 255, 255, 255), pad_x=22, pad_y=12, right_x=W - 70 - 30)
 
@@ -373,9 +374,9 @@ def create_banner():
 
     # Left Column: Information (Width 850px)
     curr_y = 70
-    p1_w, p1_h = draw_pill(draw, 75, curr_y, "PORTMASTER & ARKOS", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
-    p2_w, p2_h = draw_pill(draw, 75 + p1_w + 10, curr_y, "CROSSMIX & MUOS", font_badge, (20, 35, 55, 255), (100, 175, 255, 255), (40, 80, 130, 255))
-    p3_w, p3_h = draw_pill(draw, 75 + p1_w + 10 + p2_w + 10, curr_y, "KNULLI", font_badge, (38, 22, 52, 255), (200, 145, 255, 255), (95, 45, 135, 255))
+    p1_w, p1_h = draw_pill(draw, 75, curr_y, "PORTMASTER & CFW", font_badge, (20, 45, 25, 255), COLOR_GREEN, (40, 110, 50, 255))
+    p2_w, p2_h = draw_pill(draw, 75 + p1_w + 10, curr_y, "100% VIBECODE", font_badge, (45, 30, 15, 255), (245, 166, 35, 255), (130, 85, 20, 255))
+    p3_w, p3_h = draw_pill(draw, 75 + p1_w + 10 + p2_w + 10, curr_y, "AMTSSPRACHE: DEUTSCH", font_badge, (40, 20, 20, 255), (255, 130, 130, 255), (130, 40, 40, 255))
     draw_pill(draw, 75 + p1_w + 10 + p2_w + 10 + p3_w + 10, curr_y, f"v{VERSION} RELEASE", font_badge, (50, 25, 20, 255), COLOR_ORANGE, COLOR_ORANGE_DARK)
 
     curr_y += 62
@@ -402,7 +403,7 @@ def create_banner():
     draw.text((rest_x, text_y), "-retroconsole", font=font_title, fill=COLOR_TEXT_WHITE)
 
     curr_y += box_h + 16
-    draw.text((75, curr_y), "Das pr0gramm für deinen Retro-Handheld!", font=font_sub, fill=COLOR_TEXT_GRAY)
+    draw.text((75, curr_y), "Das pr0gramm für deinen Retro-Handheld • 100% Vibecode!", font=font_sub, fill=COLOR_TEXT_GRAY)
 
     curr_y += 48
 
@@ -424,7 +425,7 @@ def create_banner():
 
     # Bottom Footer info
     footer_y = H - 85
-    draw.text((75, footer_y), "Open Source auf GitHub • Pure Python & SDL2 • Für R36S, TrimUI Smart Pro, ArkOS, muOS, CrossMix & Co.", 
+    draw.text((75, footer_y), "Open Source auf GitHub • 100% Vibecode • Amtssprache: Deutsch • Für R36S, TrimUI, ArkOS, muOS & Co.", 
               font=font_footer, fill=COLOR_TEXT_MUTED)
 
     # Right Column: 3D Render (Width 940px, Height 530px or larger)
@@ -455,9 +456,9 @@ def create_banner():
         draw.rounded_rectangle((rx, card_y, rx + card_w, card_y + card_h), radius=16, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER, width=1)
         draw.rounded_rectangle((rx, card_y, rx + card_w, card_y + 4), radius=2, fill=COLOR_ORANGE)
 
-        draw.text((rx + 30, card_y + 25), "Bereit für die Hosentasche?", font=font_item_title, fill=COLOR_TEXT_WHITE)
+        draw.text((rx + 30, card_y + 25), "Bereit für die Hosentasche? (100% Vibecode)", font=font_item_title, fill=COLOR_TEXT_WHITE)
         draw.text((rx + 30, card_y + 65), f"Das Meilenstein-Release v{VERSION} bringt Kommentare (+ / - Voting & Antworten),", font=font_item_desc, fill=COLOR_TEXT_GRAY)
-        draw.text((rx + 30, card_y + 95), "Video-Fortschrittsbalken, muOS-Support und QR-Code Login.", font=font_item_desc, fill=COLOR_TEXT_GRAY)
+        draw.text((rx + 30, card_y + 95), "Video-Fortschrittsbalken, muOS-Support und QR-Code Login – in feinster Amtssprache.", font=font_item_desc, fill=COLOR_TEXT_GRAY)
         draw.text((rx + 30, card_y + 135), "Feedback, Benis & Pull Requests auf GitHub jederzeit willkommen!", font=font_item_desc, fill=COLOR_ORANGE)
 
     im.save(BANNER_PATH, "PNG", quality=95)

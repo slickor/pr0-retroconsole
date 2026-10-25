@@ -1,5 +1,6 @@
 """Cross-platform Video Playback for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Supports:
 1. Inline Video Playback directly inside Pygame Post-View using ffmpeg frame streaming.
 2. External Fullscreen / Windowed Playback using mpv, ffplay, or VLC with clean SDL2 transitions.

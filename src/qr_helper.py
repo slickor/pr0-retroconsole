@@ -1,5 +1,6 @@
 """QR Code Generator utility for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Generates high-contrast Pygame surfaces for display on handheld screens.
 Uses pure-Python qrcodegen with zero external dependencies.
 """

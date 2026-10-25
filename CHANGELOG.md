@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an **pr0-retroconsole** werden in dieser Datei dokumentiert.
 
+> [!NOTE]
+> Dieses Änderungsprotokoll und alle Release-Dokumentationen werden verbindlich in der einzig wahren **Amtssprache (Deutsch)** geführt.
+> Sämtlicher Code in diesem Projekt ist **100% zertifizierter Vibecode**.
+
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/)
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 

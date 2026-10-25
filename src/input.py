@@ -1,5 +1,6 @@
 """SDL2 Gamepad and Keyboard Input Handling for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Provides unified action dispatch for both native SDL2 game controllers
 and desktop/gptokeyb keyboard inputs with:
 1. Configurable button layouts: Nintendo (TrimUI / ArkOS) vs. Xbox (PC / muOS)

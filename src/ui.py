@@ -1,5 +1,6 @@
 """Pygame UI Rendering for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Provides resolution-independent rendering for:
 1. Thumbnail Grid View with dynamic pagination
 2. Fullscreen Post View with 'Tapeten' vertical fit-to-width scrolling, video autoplay & culling
@@ -1251,7 +1252,7 @@ class UIRenderer:
         x += int(logo_w) + 12
         title_txt = "EINSTELLUNGEN & FARBEN"
         self.draw_text(self.screen, self.font_bold, title_txt, self.color_text, (x, 10))
-        ver_badge = f"v{VERSION}"
+        ver_badge = f"v{VERSION} • 100% Vibecode"
         vw = self.font_small.size(ver_badge)[0]
         self.draw_text(self.screen, self.font_small, ver_badge, self.color_accent, (self.width - vw - 14, 12))
 

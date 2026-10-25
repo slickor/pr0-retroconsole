@@ -1,5 +1,8 @@
 #!/bin/bash
-# Installation script for pr0-retroconsole
+# ==============================================================================
+# install.sh - Ersteinrichtung fuer pr0-retroconsole auf Linux-Handhelds
+# Sprache: Deutsch (pr0-Amtssprache) • 100% zertifizierter Vibecode
+# ==============================================================================
 
 GAMEDIR=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
 cd "$GAMEDIR"
@@ -22,6 +25,7 @@ status_msg() {
 
 status_msg "========================================="
 status_msg "  pr0-retroconsole: Ersteinrichtung      "
+status_msg "  [ 100% Vibecode • Amtssprache: Deutsch]"
 status_msg "========================================="
 
 # Helper: Apply system SDL2 patch on handheld Linux (muOS / TrimUI / Knulli / ArkOS)

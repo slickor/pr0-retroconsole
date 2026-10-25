@@ -2,6 +2,10 @@
 
 > **Vision:** Ein erstklassiger, haptischer und ressourcenschonender Client für das Imageboard [pr0gramm](https://pr0gramm.com), optimiert für Linux-Retro-Handhelds (ArkOS, CrossMix, muOS, Knulli, PortMaster) mit vollem Gamepad- und Controller-Support.
 
+> [!NOTE]
+> **🇩🇪 Amtssprache & 100% Vibecode:**
+> Sämtliche Meilensteine, Planungen und Dokumentationen sind verbindlich in der einzig wahren **Amtssprache (Deutsch)** verfasst. Das gesamte Projekt ist zu **100% zertifizierter Vibecode** – erschaffen mit unendlichem Vibe, maximaler Agilität und voller Hingabe für die Handheld-Community!
+
 ---
 
 ## 🗺️ Roadmap-Übersicht

@@ -1,5 +1,6 @@
 """Asynchronous Image and Thumbnail Downloader with RAM-disk support for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Downloads media files in background threads without blocking the main Pygame render loop.
 Maintains a clean disk cache (max 100 files) and provides in-memory Pygame surfaces.
 """

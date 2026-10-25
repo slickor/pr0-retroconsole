@@ -1,5 +1,6 @@
 """pr0gramm REST API Client for pr0-retroconsole.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Handles fetching items, post details, comment trees, tags, voting,
 and cookie authentication with automatic nonce extraction.
 """

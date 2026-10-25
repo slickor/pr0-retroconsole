@@ -1,4 +1,8 @@
 #!/bin/bash
+# ==============================================================================
+# pr0-retroconsole PortMaster Starter
+# Sprache: Deutsch (pr0-Amtssprache) • 100% zertifizierter Vibecode
+# ==============================================================================
 
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
 

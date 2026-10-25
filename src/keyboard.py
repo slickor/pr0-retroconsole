@@ -1,5 +1,6 @@
 """Virtual On-Screen Keyboard for handheld gamepads.
 
+Sprache: Deutsch (pr0-Amtssprache) • Architektur: 100% zertifizierter Vibecode.
 Allows entering text (usernames, passwords, captcha codes) with D-Pad
 navigation, A/B/X/Y button shortcuts, and optional physical keyboard input.
 """
