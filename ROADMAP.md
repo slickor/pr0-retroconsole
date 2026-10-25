@@ -7,8 +7,29 @@
 ## 🗺️ Roadmap-Übersicht
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'darkMode': true,
+    'background': '#161618',
+    'mainBkg': '#212124',
+    'textColor': '#f2f5f4',
+    'lineColor': '#ee4d2e',
+    'primaryColor': '#212124',
+    'primaryTextColor': '#f2f5f4',
+    'primaryBorderColor': '#ee4d2e',
+    'secondaryColor': '#1c1c1f',
+    'secondaryTextColor': '#f2f5f4',
+    'secondaryBorderColor': '#303036',
+    'tertiaryColor': '#161618',
+    'tertiaryTextColor': '#8c8c94',
+    'tertiaryBorderColor': '#55555c',
+    'fontSize': '14px',
+    'fontFamily': 'Inter, system-ui, sans-serif'
+  }
+}%%
 flowchart TD
-    subgraph Erreichte_Meilensteine["Erreichte Meilensteine (Abgeschlossen)"]
+    subgraph Erreichte_Meilensteine["🏆 Erreichte Meilensteine (Abgeschlossen)"]
         P1["Phase 1: Grundlagen & Grid-Feed (v0.1 - v0.2)<br/>• Asynchrones Kachelgitter<br/>• Gamepad-Input & Layout-Wahl<br/>• PortMaster-Starter"]
         P2["Phase 2: Postansicht, Video & Auth (v0.3.0 - v0.3.5)<br/>• Hierarchischer Kommentarbaum<br/>• Fullscreen Video mit Audio<br/>• QR-Code Express-Login<br/>• Theming-Engine"]
         P3["Phase 3: UI-Polish & Web-Header (v0.3.6 - v0.3.11)<br/>• Interaktive Header-Navigation<br/>• Caching-Balken & Settings-Scroll<br/>• Schlanke Releases (<800 KB)"]
@@ -17,13 +38,33 @@ flowchart TD
         P1 --> P2 --> P3 --> P4 --> P5
     end
 
-    subgraph Kuenftige_Ziele["Künftige Ziele (In Planung & Entwicklung)"]
+    subgraph Kuenftige_Ziele["🚀 Künftige Ziele (In Planung & Entwicklung)"]
         P6["Phase 6: Post-Interaktionen & Suche (v0.5.0)<br/>• Post-Upvote, Downvote & Favoriten<br/>• Volltext- & Tag-Suche per Keyboard<br/>• Benutzerprofil & eigene Uploads/Benis"]
         P7["Phase 7: Media- & Audio-Evolution (v0.6.0)<br/>• Native Lautstärkeregelung in Postansicht<br/>• Video-Loop Umschaltung<br/>• Lokaler Download auf SD-Karte"]
         P8["Phase 8: Offline-Modus & Komfort (v0.7.0)<br/>• Offline-Cache für Reisen ohne WLAN<br/>• In-App-Auto-Updater via GitHub API<br/>• Benachrichtigungen / Stelz-Feed"]
         P9["Phase 9: PortMaster-Official & Release (v1.0.0)<br/>• Offizielle PortMaster-Zertifizierung<br/>• Touchscreen-Unterstützung<br/>• Multi-Architektur-Pakete"]
         P5 -.-> P6 --> P7 --> P8 --> P9
     end
+
+    %% Klassen-Definitionen in original pr0gramm-Farben
+    classDef doneNode fill:#212124,stroke:#5cb85c,stroke-width:2px,color:#f2f5f4;
+    classDef currentPhase fill:#2b1915,stroke:#ee4d2e,stroke-width:2.5px,color:#ffffff;
+    classDef futureNode fill:#1a1a1d,stroke:#55555c,stroke-width:1.5px,stroke-dasharray: 4 4,color:#8c8c94;
+    classDef goldNode fill:#241d13,stroke:#f5a623,stroke-width:2px,stroke-dasharray: 4 4,color:#f2f5f4;
+
+    class P1,P2,P3,P4 doneNode;
+    class P5 currentPhase;
+    class P6,P7,P8 futureNode;
+    class P9 goldNode;
+
+    %% Subgraph Styling
+    style Erreichte_Meilensteine fill:#161618,stroke:#5cb85c,stroke-width:2px,color:#5cb85c;
+    style Kuenftige_Ziele fill:#161618,stroke:#ee4d2e,stroke-width:1.5px,stroke-dasharray: 5 5,color:#ee4d2e;
+
+    %% Pfeil-Verbindungen
+    linkStyle 0,1,2,3 stroke:#5cb85c,stroke-width:2px;
+    linkStyle 4 stroke:#ee4d2e,stroke-width:2px,stroke-dasharray: 4 4;
+    linkStyle 5,6,7 stroke:#55555c,stroke-width:1.5px,stroke-dasharray: 4 4;
 ```
 
 ---
